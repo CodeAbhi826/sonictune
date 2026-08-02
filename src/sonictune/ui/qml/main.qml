@@ -27,7 +27,7 @@ ApplicationWindow {
 
     Connections {
         target: Daemon
-        function onConnectionChanged(connected) { daemonConnected = connected }
+        function onConnectionChanged(connected) { window.daemonConnected = connected }
     }
 
     // --- Connection banner --------------------------------------------------
@@ -36,7 +36,7 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: daemonConnected ? 0 : 40
+        height: window.daemonConnected ? 0 : 40
         color: Theme.error
         visible: height > 0
         clip: true

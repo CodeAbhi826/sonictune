@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import qasync
 import structlog
@@ -30,6 +31,9 @@ from sonictune.mpris.server import MprisServer
 from sonictune.player import get_player_class
 from sonictune.player.queue import QueueManager
 from sonictune.stats.aggregator import StatsAggregator
+
+if TYPE_CHECKING:
+    from sonictune.player.mpv_player import MpvPlayer
 from sonictune.ui.clipboard import ClipboardHelper
 from sonictune.ui.daemon_proxy import DaemonProxy
 from sonictune.ui.imageprovider import ArtImageProvider
