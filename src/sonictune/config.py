@@ -42,7 +42,7 @@ DEFAULT_DATA_DIR = Path(
 class AudioConfig:
     """Audio playback settings."""
 
-    quality: str = "aac_256"  # aac_256 (Premium, 256kbps) | opus_160 (free, 160kbps)
+    quality: str = "opus_160"  # opus_160 (free, 160kbps) | aac_256 (Premium, 256kbps)
     normalization: bool = True  # EBU R128 loudnorm via mpv af
     gapless: bool = True  # mpv --gapless-audio=yes
     volume_step: int = 5  # percent per step
@@ -149,7 +149,7 @@ _DEFAULT_TOML = """
 # Edit values below to customize. Restart the daemon for changes to take effect.
 
 [audio]
-quality = "aac_256"           # aac_256 (Premium, 256kbps) | opus_160 (free, 160kbps)
+quality = "opus_160"          # opus_160 (free, 160kbps) | aac_256 (Premium, 256kbps)
 normalization = true
 gapless = true
 volume_step = 5

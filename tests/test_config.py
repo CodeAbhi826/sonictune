@@ -22,7 +22,7 @@ def test_default_config_creates_file(tmp_path: Path) -> None:
     try:
         config = load_config()
         assert config_path.exists()
-        assert config.audio.quality == "aac_256"
+        assert config.audio.quality == "opus_160"
     finally:
         cfg_module.DEFAULT_CONFIG_DIR = original_default
 
@@ -52,10 +52,10 @@ theme = "archive"
 
 def test_audio_config_itag_resolution() -> None:
     audio = AudioConfig()
-    assert audio.itag == 141  # default aac_256
+    assert audio.itag == 251  # default opus_160 (free)
 
-    audio.quality = "opus_160"
-    assert audio.itag == 251
+    audio.quality = "aac_256"
+    assert audio.itag == 141
 
     audio.quality = "aac_128"
     assert audio.itag == 140

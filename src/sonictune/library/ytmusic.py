@@ -231,8 +231,20 @@ class YTMusicLibrary:
             from yt_dlp import YoutubeDL
 
             def _extract() -> str:
+                # BUGFIX: the configured itag (default aac_256 -> 141) is
+                # Premium-only. On free accounts requesting it makes yt-dlp
+                # fail with "Requested format is not available" for *every*
+                # video. Try the requested itag first, then fall back through
+                # the free formats (251 = opus 160k, 140 = aac 128k), then
+                # any best-audio format — so playback works on any account.
+                fallback = "bestaudio/best"
+                fmt_chain = {
+                    141: "141/251/140",
+                    251: "251/140",
+                    140: "140",
+                }.get(itag, str(itag))
                 opts = {
-                    "format": str(itag),
+                    "format": f"{fmt_chain}/{fallback}",
                     "quiet": True,
                     "no_warnings": True,
                     "skip_download": True,
@@ -246,7 +258,7 @@ class YTMusicLibrary:
                     if info and info.get("url"):
                         return info["url"]
                     for f in info.get("formats", []) if info else []:
-                        if f.get("format_id") == str(itag) and f.get("url"):
+                        if f.get("url"):
                             return f["url"]
                     raise RuntimeError(f"No playable URL for itag {itag}")
 
