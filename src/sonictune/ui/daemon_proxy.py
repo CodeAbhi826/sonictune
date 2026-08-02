@@ -106,6 +106,10 @@ class DaemonProxy(QObject):
     def connected(self) -> bool:
         return True  # always connected in unified mode
 
+    @Slot(result=bool)
+    def isConnected(self) -> bool:
+        return True  # always connected in unified mode (single process)
+
     def _on_player_event(self, event: PlayerEvent, data: dict[str, Any]) -> None:
         """Forward player events as Qt signals."""
         if event == PlayerEvent.STATE_CHANGED:

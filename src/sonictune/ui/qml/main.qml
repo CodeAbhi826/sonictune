@@ -23,6 +23,12 @@ ApplicationWindow {
     Material.background: Theme.background
 
     property int cachedVolume: 80
+    property bool daemonConnected: Daemon.isConnected()
+
+    Connections {
+        target: Daemon
+        function onConnectionChanged(connected) { daemonConnected = connected }
+    }
 
     // --- Connection banner --------------------------------------------------
     Rectangle {
@@ -30,7 +36,7 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: Daemon.connected ? 0 : 40
+        height: daemonConnected ? 0 : 40
         color: Theme.error
         visible: height > 0
         clip: true

@@ -27,7 +27,7 @@ Item {
         Daemon.getStats()
     }
 
-    Component.onCompleted: { if (Daemon.connected) statsPage.reload() }
+    Component.onCompleted: { if (Daemon.isConnected()) statsPage.reload() }
 
     ScrollView {
         anchors.fill: parent

@@ -43,7 +43,7 @@ Item {
     }
 
     Component.onCompleted: {
-        if (Daemon.connected) homePage.reload()
+        if (Daemon.isConnected()) homePage.reload()
     }
 
     ScrollView {
