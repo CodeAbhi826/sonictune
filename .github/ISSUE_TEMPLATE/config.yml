@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Ask a question
+    url: https://github.com/yourusername/sonictune/discussions/categories/q-a
+    about: Ask the community for help (questions are NOT bugs).
+  - name: 📚 Read the docs
+    url: https://github.com/yourusername/sonictune/tree/main/docs
+    about: Architecture, D-Bus interface, setup, and roadmap docs.
+  - name: 📖 Read the contributing guide
+    url: https://github.com/yourusername/sonictune/blob/main/CONTRIBUTING.md
+    about: How to set up a dev environment and submit PRs.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/yourusername/sonictune/security/policy
+    about: Please don't open public issues for security reports.

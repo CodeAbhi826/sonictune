@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# uv
+uv.lock
+
+# Tests
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+_build/
+build-*/
+meson-info/
+meson-logs/
+meson-private/
+
+# Flatpak
+.flatpak-builder/
+.flatpak/
+
+# Runtime data
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Local config (don't commit user secrets)
+config.local.toml
+*.secret
+
+# Qt
+*.qmlc
+*.qmltc
+*.jsc
+qml_qmlcache.qrc
+
+# App-specific cache
+.cache/sonictune/

@@ -1,0 +1,104 @@
+{
+  "app-id": "org.sonicTune",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "46",
+  "sdk": "org.gnome.Sdk",
+  "command": "sonictune",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--socket=pulseaudio",
+    "--device=dri",
+    "--filesystem=xdg-music",
+    "--filesystem=xdg-download",
+    "--filesystem=xdg-config/sonictune",
+    "--filesystem=xdg-cache/sonictune",
+    "--filesystem=xdg-data/sonictune",
+    "--talk-name=org.freedesktop.DBus",
+    "--talk-name=org.mpris.MediaPlayer2.*",
+    "--own-name=org.sonicTune.Daemon",
+    "--own-name=org.mpris.MediaPlayer2.sonictune"
+  ],
+  "cleanup": [
+    "/include",
+    "/lib/pkgconfig",
+    "/share/pkgconfig",
+    "*.la",
+    "*.a"
+  ],
+  "modules": [
+    {
+      "name": "mpv",
+      "cleanup": ["/include", "/lib/pkgconfig"],
+      "config-opts": [
+        "--disable-html-build",
+        "--disable-debug-build",
+        "--enable-libmpv-shared",
+        "--disable-encoding",
+        "--disable-libarchive",
+        "--disable-manpage-build",
+        "--disable-pdf-build"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://github.com/mpv-player/mpv/archive/refs/tags/v0.38.0.tar.gz",
+          "sha256": "89e2f1ee63a6f0629965d5cf3a55c3a5e5a61e63ac6e2f8c4a18f5b2f5e5a5e5",
+          "x-checker-data": {
+            "type": "anitya",
+            "project-id": 5348,
+            "url-template": "https://github.com/mpv-player/mpv/archive/refs/tags/v$version.tar.gz"
+          }
+        }
+      ],
+      "modules": [
+        {
+          "name": "libplacebo",
+          "buildsystem": "meson",
+          "config-opts": ["-Dvulkan=disabled", "-Dshaderc=disabled"],
+          "sources": [
+            {
+              "type": "archive",
+              "url": "https://code.videolan.org/videolan/libplacebo/-/archive/v7.349.0/libplacebo-v7.349.0.tar.gz",
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "python3-uv",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip install --no-deps --prefix=/app uv"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/source/u/uv/uv-0.4.0.tar.gz",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "name": "sonictune",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip install --no-deps --prefix=/app ."
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": ".."
+        }
+      ],
+      "post-install": [
+        "install -Dm644 data/org.sonicTune.desktop /app/share/applications/org.sonicTune.desktop",
+        "install -Dm644 data/org.sonicTune.appdata.xml /app/share/metainfo/org.sonicTune.appdata.xml",
+        "install -Dm644 data/org.sonicTune.svg /app/share/icons/hicolor/scalable/apps/org.sonicTune.svg"
+      ]
+    }
+  ]
+}

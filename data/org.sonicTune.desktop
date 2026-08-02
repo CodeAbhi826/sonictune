@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=SonicTune
+GenericName=Music Player
+Comment=Native Linux YouTube Music client
+Comment[de]=Nativer Linux YouTube Music Client
+Comment[fr]=Client YouTube Music natif pour Linux
+Comment[es]=Cliente nativo de YouTube Music para Linux
+Exec=sonictune
+Icon=org.sonicTune
+Terminal=false
+Categories=Audio;AudioVideo;Music;Player;Qt;
+Keywords=music;youtube;player;audio;mpv;
+StartupNotify=true
+StartupWMClass=sonictune
+SingleMainWindow=true
+X-KDE-Keywords=music,youtube,player,audio,mpv
+X-GNOME-UsesNotifications=true

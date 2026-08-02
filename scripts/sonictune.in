@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Wrapper script installed by Meson — launches the SonicTune UI."""
+import sys
+import os
+
+# Add installed Python package path
+PREFIX = "@PREFIX@"
+sys.path.insert(0, os.path.join(PREFIX, "share", "sonictune"))
+
+from sonictune.app import main
+
+if __name__ == "__main__":
+    sys.exit(main())

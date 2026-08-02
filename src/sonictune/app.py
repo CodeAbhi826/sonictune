@@ -1,0 +1,290 @@
+"""SonicTune unified application — owns all services in a single process."""
+from __future__ import annotations
+
+import asyncio
+import locale
+import logging
+import os
+import signal
+import sys
+from pathlib import Path
+
+import qasync
+import structlog
+from PySide6.QtCore import QUrl
+from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuickControls2 import QQuickStyle
+from PySide6.QtWidgets import QApplication
+
+from sonictune import __version__
+from sonictune.auth.oauth import OAuthManager
+from sonictune.cache.art import ArtCache
+from sonictune.cache.audio import AudioCache
+from sonictune.config import DaemonConfig, load_config
+from sonictune.db.database import Database
+from sonictune.discord.rpc import DiscordRPC
+from sonictune.library.sync import LibrarySync
+from sonictune.library.ytmusic import YTMusicLibrary
+from sonictune.lyrics.lrclib import LrclibClient
+from sonictune.mpris.server import MprisServer
+from sonictune.player import get_player_class
+from sonictune.player.queue import QueueManager
+from sonictune.stats.aggregator import StatsAggregator
+from sonictune.ui.clipboard import ClipboardHelper
+from sonictune.ui.daemon_proxy import DaemonProxy
+from sonictune.ui.imageprovider import ArtImageProvider
+
+log = structlog.get_logger()
+
+
+class SonicTuneApp:
+    """Unified application — owns all services, runs in a single process."""
+
+    def __init__(self, config: DaemonConfig, verbose: bool = False) -> None:
+        self.config = config
+        self.verbose = verbose
+        self._configure_logging()
+        self._set_locale()
+
+        # Qt application
+        # Try native Wayland first, only fall back to XWayland if Wayland
+        # genuinely isn't available. Bare setdefault("QT_QPA_PLATFORM", "xcb")
+        # would silently override Qt's own Wayland auto-detection on sessions
+        # that don't set this var at all (most native Wayland sessions).
+        os.environ.setdefault("QT_QPA_PLATFORM", "wayland;xcb")
+        os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=warning")
+        os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Material")
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        self.app = QApplication(sys.argv[:1])
+        self.app.setApplicationName("SonicTune")
+        self.app.setApplicationDisplayName("SonicTune")
+        self.app.setApplicationVersion(__version__)
+        self.app.setOrganizationName("SonicTune")
+        self.app.setDesktopFileName("org.sonicTune")
+        self.app.setQuitOnLastWindowClosed(False)  # minimize to tray instead
+
+        # qasync event loop
+        self.loop = qasync.QEventLoop(self.app)
+        asyncio.set_event_loop(self.loop)
+
+        QQuickStyle.setStyle("Material")
+
+        # Services (initialized in async _init_services)
+        self.db: Database | None = None
+        self.oauth: OAuthManager | None = None
+        self.library: YTMusicLibrary | None = None
+        self.player: MpvPlayer | None = None
+        self.queue = QueueManager()
+        self.art_cache: ArtCache | None = None
+        self.audio_cache: AudioCache | None = None
+        self.lyrics: LrclibClient | None = None
+        self.stats: StatsAggregator | None = None
+        self.mpris: MprisServer | None = None
+        self.discord: DiscordRPC | None = None
+        self.sync: LibrarySync | None = None
+
+        # QML-facing proxy
+        self.daemon: DaemonProxy | None = None
+
+    def _set_locale(self) -> None:
+        """CRITICAL: libmpv requires C locale. Set via ctypes at C level."""
+        try:
+            import ctypes
+            libc = ctypes.CDLL("libc.so.6")
+            libc.setlocale(0, b"C")  # LC_ALL = 0
+        except OSError:
+            pass
+        locale.setlocale(locale.LC_ALL, "C")
+
+    def _configure_logging(self) -> None:
+        level = "DEBUG" if self.verbose else self.config.log_level
+        structlog.configure(
+            processors=[
+                structlog.processors.add_log_level,
+                structlog.processors.TimeStamper(fmt="iso"),
+                structlog.dev.ConsoleRenderer(colors=sys.stderr.isatty()),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(
+                getattr(logging, level.upper(), logging.INFO)
+            ),
+        )
+
+    async def _init_services(self) -> None:
+        """Initialize all services. Called once on startup."""
+        log.info("app.starting", version=__version__)
+
+        self.db = Database(self.config.db_path)
+        await self.db.init()
+
+        self.oauth = OAuthManager(self.config.oauth_path)
+        await self.oauth.init()
+
+        self.library = YTMusicLibrary(oauth=self.oauth, cookies_path=self.config.cookies_path)
+        await self.library.init()
+
+        # Player (MpvPlayer or NullPlayer). get_player_class() catches both
+        # OSError (libmpv shared library missing) and ImportError (the mpv
+        # pip package itself missing) and falls back to NullPlayer.
+        PlayerClass = get_player_class()
+        if PlayerClass.__name__ == "NullPlayer":
+            log.warning("app.mpv_unavailable")
+        self.player = PlayerClass(self.config.audio)
+        await self.player.init()
+
+        self.art_cache = ArtCache(self.config.cache.art_dir, max_size_mb=self.config.cache.art_size_mb)
+        self.audio_cache = AudioCache(self.config.cache.audio_dir, max_size_mb=self.config.cache.audio_size_mb)
+        self.lyrics = LrclibClient()
+        self.stats = StatsAggregator(self.db)
+        self.sync = LibrarySync(self.library, self.db, self.oauth)
+
+        # MPRIS (external D-Bus — for desktop integration)
+        if self.config.mpris.enabled:
+            try:
+                self.mpris = MprisServer(
+                    player=self.player,
+                    queue=self.queue,
+                    library=self.library,
+                    config=self.config,
+                )
+                await self.mpris.register()
+            except Exception as e:
+                log.warning("app.mpris_failed", error=str(e))
+                self.mpris = None
+
+        # Discord RPC (optional)
+        if self.config.discord.enabled and self.config.discord.client_id:
+            self.discord = DiscordRPC(client_id=self.config.discord.client_id)
+            await self.discord.connect()
+            self._wire_discord()
+
+        # Create the QML-facing proxy
+        self.daemon = DaemonProxy(
+            player=self.player,
+            queue=self.queue,
+            library=self.library,
+            oauth=self.oauth,
+            lyrics=self.lyrics,
+            stats=self.stats,
+            art_cache=self.art_cache,
+            audio_cache=self.audio_cache,
+            db=self.db,
+            sync=self.sync,
+            config=self.config,
+        )
+
+        log.info("app.ready")
+
+    def _wire_discord(self) -> None:
+        """Wire DiscordRPC to player events."""
+        if not self.discord or not self.player:
+            return
+        from sonictune.player.types import PlayerEvent
+
+        def _on_event(event: object, data: dict) -> None:
+            if event == PlayerEvent.TRACK_CHANGED:
+                track = data.get("track")
+                if track:
+                    asyncio.create_task(  # noqa: RUF006 — fire-and-forget presence update
+                        self.discord.update(
+                            title=track.title,
+                            artist=track.artist,
+                            album=getattr(track, "album", None),
+                            thumbnail_url=getattr(track, "thumbnail_url", None),
+                            duration_ms=getattr(track, "duration_ms", None),
+                        )
+                    )
+            elif event == PlayerEvent.STATE_CHANGED:
+                asyncio.create_task(  # noqa: RUF006 — fire-and-forget presence update
+                    self.discord.update(
+                        title=self.player.current_track.title,
+                        artist=self.player.current_track.artist,
+                        paused=(data.get("state") != "playing"),
+                    )
+                )
+
+        self.player.add_listener(_on_event)
+        log.info("discord.wired")
+
+    def _setup_qml(self) -> None:
+        """Set up QML engine and context properties."""
+        engine = QQmlApplicationEngine()
+        engine.addImportPath(str(Path(__file__).parent / "ui" / "qml"))
+
+        # Register image provider
+        engine.addImageProvider("art", ArtImageProvider(self.art_cache))
+
+        # Register context properties
+        engine.rootContext().setContextProperty("Daemon", self.daemon)
+        engine.rootContext().setContextProperty("Clipboard", ClipboardHelper())
+        engine.rootContext().setContextProperty("AppVersion", __version__)
+
+        # Load main.qml
+        main_qml = Path(__file__).parent / "ui" / "qml" / "main.qml"
+        engine.load(QUrl.fromLocalFile(str(main_qml)))
+
+        if not engine.rootObjects():
+            log.error("app.qml_load_failed", path=str(main_qml))
+            sys.exit(1)
+
+        log.info("app.qml_ready")
+        self._engine = engine
+
+    def _setup_tray(self) -> None:
+        """Set up system tray icon for minimize-to-tray."""
+        from sonictune.ui.tray import TrayIcon
+        self._tray = TrayIcon(self.app, self._engine.rootObjects()[0])
+        self._tray.show()
+
+    async def run(self) -> int:
+        """Run the application."""
+        await self._init_services()
+        self._setup_qml()
+        self._setup_tray()
+        return self.app.exec()
+
+    async def shutdown(self) -> None:
+        """Clean shutdown."""
+        log.info("app.stopping")
+        if self.discord:
+            await self.discord.close()
+        if self.mpris:
+            await self.mpris.unregister()
+        if self.player:
+            await self.player.shutdown()
+        if self.library:
+            await self.library.close()
+        if self.db:
+            await self.db.close()
+        log.info("app.stopped")
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    parser = argparse.ArgumentParser(prog="sonictune")
+    parser.add_argument("--config", type=Path, default=None)
+    parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--no-mpris", action="store_true")
+    parser.add_argument("--no-discord", action="store_true")
+    parser.add_argument("--version", action="version", version=f"sonictune {__version__}")
+    args = parser.parse_args(argv)
+
+    config = load_config(args.config)
+    if args.no_mpris:
+        config.mpris.enabled = False
+    if args.no_discord:
+        config.discord.enabled = False
+
+    app = SonicTuneApp(config, verbose=args.verbose)
+
+    try:
+        return asyncio.run(app.run())
+    except KeyboardInterrupt:
+        return 130
+    except Exception:
+        structlog.get_logger("app").exception("fatal")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,118 @@
+[project]
+name = "sonictune"
+version = "0.1.0"
+description = "A native Linux YouTube Music client built for performance and privacy."
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "SonicTune Contributors" }]
+requires-python = ">=3.11"
+keywords = ["youtube-music", "linux", "qt6", "qml", "mpv", "music-player"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Players",
+]
+dependencies = [
+    # Core async + DBus
+    "dbus-next>=0.2.3",
+    "qasync>=0.27.1",
+    # YouTube Music API (OAuth-capable)
+    "ytmusicapi>=1.8.0",
+    # YouTube extraction
+    "yt-dlp>=2024.8.6",
+    # Media player
+    "python-mpv>=1.0.7",
+    # Qt bindings
+    "PySide6>=6.7.0",
+    "shiboken6>=6.7.0",
+    # Async DB
+    "aiosqlite>=0.20.0",
+    # HTTP (async)
+    "httpx>=0.27.0",
+    # Image processing for art cache
+    "Pillow>=10.4.0",
+    # Structured logging
+    "structlog>=24.4.0",
+    # Config
+    "tomli>=2.0.1; python_version < '3.11'",
+    # Optional integrations
+    "pypresence>=4.3.0",
+    # MPRIS already covered by dbus-next
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "types-Pillow",
+]
+
+[project.scripts]
+sonictune = "sonictune.app:main"
+
+[project.urls]
+Homepage = "https://github.com/CodeAbhi826/sonictune"
+Repository = "https://github.com/CodeAbhi826/sonictune"
+Documentation = "https://github.com/CodeAbhi826/sonictune/tree/main/docs"
+Issues = "https://github.com/CodeAbhi826/sonictune/issues"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sonictune*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",    # pycodestyle + pyflakes
+    "I",              # isort
+    "B",              # bugbear
+    "UP",             # pyupgrade
+    "SIM",            # simplify
+    "ASYNC",          # async lints
+    "C4",             # comprehensions
+    "PIE",
+    "RUF",
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers --cov=sonictune --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+files = ["src/sonictune"]

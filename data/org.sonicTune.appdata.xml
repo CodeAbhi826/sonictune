@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.sonicTune</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SonicTune</name>
+  <summary>Native Linux YouTube Music client</summary>
+  <description>
+    <p>
+      SonicTune is a FOSS YouTube Music client for Linux, built for performance,
+      privacy, and power users. It runs as a background daemon — so playback
+      continues even if the UI crashes — with a QML frontend that talks to it
+      over D-Bus.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>256 kbps AAC playback via libmpv (hardware-decoded, gapless)</li>
+      <li>OAuth login (TV device code flow) + cookie import fallback</li>
+      <li>Search and browse YouTube Music (Home, Charts, Library)</li>
+      <li>Synced lyrics via LRCLIB</li>
+      <li>MPRIS integration (KDE/GNOME media controls)</li>
+      <li>Album art pipeline with on-disk LRU cache</li>
+      <li>Queue management with shuffle, repeat, drag-to-reorder</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">org.sonicTune.desktop</launchable>
+  <url type="homepage">https://github.com/CodeAbhi826/sonictune</url>
+  <url type="bugtracker">https://github.com/CodeAbhi826/sonictune/issues</url>
+  <url type="donation">https://github.com/sponsors/CodeAbhi826</url>
+  <categories>
+    <category>Audio</category>
+    <category>AudioVideo</category>
+    <category>Music</category>
+    <category>Player</category>
+  </categories>
+  <keywords>
+    <keyword>music</keyword>
+    <keyword>youtube</keyword>
+    <keyword>player</keyword>
+    <keyword>audio</keyword>
+    <keyword>mpv</keyword>
+  </keywords>
+  <provides>
+    <binary>sonictune</binary>
+  </provides>
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </recommends>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="money-purchasing">intense</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="0.1.0" date="2026-07-26">
+      <description>
+        <p>Initial alpha release.</p>
+        <ul>
+          <li>Phase 1 core: auth, search, playback, queue, MPRIS</li>
+          <li>OAuth TV device code flow</li>
+          <li>256 kbps AAC playback via libmpv</li>
+          <li>Material 3-inspired QML UI</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+  <developer id="sonictune.contributors">
+    <name>SonicTune Contributors</name>
+  </developer>
+</component>
