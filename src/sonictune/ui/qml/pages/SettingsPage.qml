@@ -222,6 +222,11 @@ Item {
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
                 }
+                Text {
+                    text: qsTr("Version %1").arg(typeof AppVersion !== "undefined" ? AppVersion : "0.1.0")
+                    color: Theme.onSurfaceVariant
+                    font: Theme.fontBodySmall
+                }
             }
         }
     }

@@ -194,11 +194,23 @@ class YTMusicLibrary:
 
     # --- Streaming URL -----------------------------------------------------
 
+    # ---- Stream resolution --------------------------------------------------
+
+    # Priority order for ytmusicapi-provided audio formats. We prefer the
+    # requested itag, then fall back down this chain so playback works on
+    # free (non-Premium) accounts where itag 141 is unavailable.
+    _AUDIO_ITAGS = (141, 251, 140, 250, 249, 139)
+
     async def get_stream_url(self, video_id: str, itag: int) -> str:
         """Resolve a streaming URL for a given video_id + itag.
 
-        Uses yt-dlp under the hood. Rate-limited to 1 call per 2s globally,
-        with per-video caching (5 min TTL) and dedup locks.
+        Primary: ``ytmusicapi.get_song()`` streaming data (pre-signed URLs).
+        Fallback: yt-dlp extraction. Results are cached (5 min TTL) and
+        deduplicated with per-video locks (bounded to ``_max_url_locks``).
+
+        yt-dlp falls are rate-limited to 1 call per ``_min_url_interval``
+        seconds globally; ytmusicapi requests are not (they are a single
+        lightweight JSON call and are the preferred path).
         """
         now = time.time()
         if video_id in self._url_cache:
@@ -206,66 +218,112 @@ class YTMusicLibrary:
             if now - fetched_at < 300:
                 return url
 
-        if video_id in self._url_locks:
-            self._url_locks.move_to_end(video_id)
-        else:
-            self._url_locks[video_id] = asyncio.Lock()
-            if len(self._url_locks) > self._max_url_locks:
-                # Evict the least-recently-used lock. Safe as long as it's
-                # not currently held — the oldest entries are the ones least
-                # likely to be mid-use.
-                self._url_locks.popitem(last=False)
-
-        async with self._url_locks[video_id]:
+        lock = self._get_lock(video_id)
+        async with lock:
             if video_id in self._url_cache:
                 url, fetched_at = self._url_cache[video_id]
                 if now - fetched_at < 300:
                     return url
 
-            async with self._global_lock:
-                elapsed = time.time() - self._last_ytdlp_call
-                if elapsed < self._min_url_interval:
-                    await asyncio.sleep(self._min_url_interval - elapsed)
-                self._last_ytdlp_call = time.time()
+            # Primary: ytmusicapi native streaming data.
+            url = await self._resolve_via_ytmusicapi(video_id, itag)
+            if url:
+                self._url_cache[video_id] = (url, time.time())
+                log.info("stream.ytmusicapi", video_id=video_id, itag=itag)
+                return url
 
-            from yt_dlp import YoutubeDL
-
-            def _extract() -> str:
-                # BUGFIX: the configured itag (default aac_256 -> 141) is
-                # Premium-only. On free accounts requesting it makes yt-dlp
-                # fail with "Requested format is not available" for *every*
-                # video. Try the requested itag first, then fall back through
-                # the free formats (251 = opus 160k, 140 = aac 128k), then
-                # any best-audio format — so playback works on any account.
-                fallback = "bestaudio/best"
-                fmt_chain = {
-                    141: "141/251/140",
-                    251: "251/140",
-                    140: "140",
-                }.get(itag, str(itag))
-                opts = {
-                    "format": f"{fmt_chain}/{fallback}",
-                    "quiet": True,
-                    "no_warnings": True,
-                    "skip_download": True,
-                    "noplaylist": True,
-                }
-                with YoutubeDL(opts) as ydl:
-                    info = ydl.extract_info(
-                        f"https://music.youtube.com/watch?v={video_id}",
-                        download=False,
-                    )
-                    if info and info.get("url"):
-                        return info["url"]
-                    for f in info.get("formats", []) if info else []:
-                        if f.get("url"):
-                            return f["url"]
-                    raise RuntimeError(f"No playable URL for itag {itag}")
-
-            url = await asyncio.to_thread(_extract)
+            # Fallback: yt-dlp extraction (rate-limited globally).
+            url = await self._get_stream_url_ytdlp(video_id, itag)
             self._url_cache[video_id] = (url, time.time())
-            log.info("library.stream_url", video_id=video_id, itag=itag)
+            log.info("stream.ytdlp", video_id=video_id, itag=itag)
             return url
+
+    def _get_lock(self, video_id: str) -> asyncio.Lock:
+        if video_id not in self._url_locks:
+            self._url_locks[video_id] = asyncio.Lock()
+        self._url_locks.move_to_end(video_id)
+        while len(self._url_locks) > self._max_url_locks:
+            # Evict the least-recently-used lock. Safe as long as it's not
+            # currently held — the oldest entries are least likely mid-use.
+            self._url_locks.popitem(last=False)
+        return self._url_locks[video_id]
+
+    async def _resolve_via_ytmusicapi(self, video_id: str, itag: int) -> str:
+        """Try ytmusicapi's ``get_song`` streaming data. Returns "" on any
+        failure/non-match so the caller can fall back to yt-dlp."""
+        if self._ytm is None:
+            return ""
+        try:
+            song = await asyncio.to_thread(self._ytm.get_song, video_id)
+            formats = (song.get("streamingData") or {}).get("adaptiveFormats") or []
+        except Exception as e:
+            log.warning("stream.ytmusicapi_failed", video_id=video_id, error=str(e))
+            return ""
+
+        def _url_for(target: int) -> str:
+            for f in formats:
+                if f.get("itag") == target and f.get("url"):
+                    return f["url"]
+            return ""
+
+        # Exact requested itag first.
+        direct = _url_for(itag)
+        if direct:
+            return direct
+
+        # Then best available audio fallback.
+        for target in self._AUDIO_ITAGS:
+            alt = _url_for(target)
+            if alt:
+                return alt
+        return ""
+
+    async def _get_stream_url_ytdlp(self, video_id: str, itag: int) -> str:
+        """yt-dlp extraction — the fallback stream resolver.
+
+        Serialized globally so concurrent fallbacks cannot interleave their
+        rate-limit accounting.
+        """
+        async with self._global_lock:
+            elapsed = time.time() - self._last_ytdlp_call
+            if elapsed < self._min_url_interval:
+                await asyncio.sleep(self._min_url_interval - elapsed)
+            self._last_ytdlp_call = time.time()
+
+        from yt_dlp import YoutubeDL
+
+        def _extract() -> str:
+            # The configured itag (default aac_256 -> 141) is Premium-only.
+            # On free accounts requesting it makes yt-dlp fail with
+            # "Requested format is not available". Try the requested itag
+            # first, then fall back through the free formats, then any
+            # best-audio format — so playback works on any account.
+            fallback = "bestaudio/best"
+            fmt_chain = {
+                141: "141/251/140",
+                251: "251/140",
+                140: "140",
+            }.get(itag, str(itag))
+            opts = {
+                "format": f"{fmt_chain}/{fallback}",
+                "quiet": True,
+                "no_warnings": True,
+                "skip_download": True,
+                "noplaylist": True,
+            }
+            with YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(
+                    f"https://music.youtube.com/watch?v={video_id}",
+                    download=False,
+                )
+                if info and info.get("url"):
+                    return info["url"]
+                for f in info.get("formats", []) if info else []:
+                    if f.get("url"):
+                        return f["url"]
+                raise RuntimeError(f"No playable URL for itag {itag}")
+
+        return await asyncio.to_thread(_extract)
 
     # --- History back-sync (Phase 2) --------------------------------------
 

@@ -37,6 +37,9 @@ QtObject {
             onPrimary:          "#241500",
             primaryContainer:   "#3D2B0B",
             signal:             "#4FD3C4",
+            onSignal:           "#001414",
+            signalContainer:    "#0E3A33",
+            onSignalContainer:  "#ADF1E6",
             onSurface:          "#EDEEF0",
             onSurfaceVariant:   "#9AA0AC",
             outline:            "#2E313A",
@@ -55,6 +58,9 @@ QtObject {
             onPrimary:          "#FFFFFF",
             primaryContainer:   "#FFDDB0",
             signal:             "#0E7C6E",
+            onSignal:           "#FFFFFF",
+            signalContainer:    "#A6F0E5",
+            onSignalContainer:  "#00201B",
             onSurface:          "#221A10",
             onSurfaceVariant:   "#6F6357",
             outline:            "#E3DACA",
@@ -74,6 +80,9 @@ QtObject {
             onPrimary:          "#241505",
             primaryContainer:   "#4A3018",
             signal:             "#7FBFA0",
+            onSignal:           "#1B0500",
+            signalContainer:    "#2E5246",
+            onSignalContainer:  "#CCEBDD",
             onSurface:          "#F1E6D6",
             onSurfaceVariant:   "#B4A28A",
             outline:            "#3C3126",
@@ -97,6 +106,13 @@ QtObject {
     readonly property color primaryContainer: palettes[mode].primaryContainer
     readonly property color accent: palettes[mode].primary
     readonly property color signal: palettes[mode].signal
+    // Material 3 "secondary" token set — mapped to the signal teal. The
+    // theme's own palette calls it `signal`; these spec-compliant names are
+    // kept as aliases so components can use the standard M3 token names.
+    readonly property color secondary: palettes[mode].signal
+    readonly property color onSecondary: palettes[mode].onSignal
+    readonly property color secondaryContainer: palettes[mode].signalContainer
+    readonly property color onSecondaryContainer: palettes[mode].onSignalContainer
     readonly property color onSurface: palettes[mode].onSurface
     readonly property color foreground: palettes[mode].onSurface
     readonly property color onSurfaceVariant: palettes[mode].onSurfaceVariant
@@ -138,11 +154,12 @@ QtObject {
     readonly property int spacingXxl: 48
 
     // --- Radii -------------------------------------------------------------
-    readonly property int radiusSm: 6
-    readonly property int radiusMd: 10
-    readonly property int radiusLg: 14
-    readonly property int radiusXl: 24
-    readonly property int radiusPill: 999
+    readonly property int radiusSm: 4
+    readonly property int radiusMd: 8
+    readonly property int radiusLg: 12
+    readonly property int radiusXl: 16
+    readonly property int radiusPill: 9999
+    readonly property int radiusFull: 9999
 
     // --- Motion ------------------------------------------------------------
     readonly property int durationFast: 100
