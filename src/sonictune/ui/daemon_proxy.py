@@ -313,6 +313,7 @@ class DaemonProxy(QObject):
                 home = await self._library.get_home()
                 self.homeReceived.emit(self._normalize_home(home))
             except Exception as e:
+                log.warning("proxy.home_error", error=str(e))
                 self.homeError.emit(str(e))
         asyncio.create_task(_do())
 

@@ -300,7 +300,7 @@ class SonicTuneApp:
         await self._init_services()
         self._setup_qml()
         self._setup_tray()
-        return self.app.exec()
+        return 0
 
     async def shutdown(self) -> None:
         """Clean shutdown."""
@@ -337,7 +337,12 @@ def main(argv: list[str] | None = None) -> int:
     app = SonicTuneApp(config, verbose=args.verbose)
 
     try:
-        return asyncio.run(app.run())
+        # Drive the qasync loop: it pumps the asyncio tasks AND the Qt event
+        # loop from the same thread. Without this, `app.exec()` would block
+        # the thread while the asyncio loop never runs, so every async proxy
+        # call (home feed, search, playback) would hang forever.
+        app.loop.create_task(app.run())
+        return app.loop.run_forever()
     except KeyboardInterrupt:
         return 130
     except Exception:

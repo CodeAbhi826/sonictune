@@ -81,16 +81,15 @@ ApplicationWindow {
         }
 
         Item {
+            id: contentArea
             Layout.fillWidth: true
             Layout.fillHeight: true
 
             // Padding so the floating PlayerBar doesn't cover content.
-            anchors.topMargin: 0
-            anchors.bottomMargin: 104
-
             StackLayout {
                 id: pageStack
                 anchors.fill: parent
+                anchors.bottomMargin: 104
 
                 function switchTo(name) {
                     currentIndex = {
@@ -117,8 +116,8 @@ ApplicationWindow {
     // --- Floating PlayerBar ------------------------------------------------
     PlayerBar {
         id: playerBar
-        anchors.left: navRail.right
-        anchors.leftMargin: Theme.spacingMd
+        anchors.left: parent.left
+        anchors.leftMargin: navRail.width + Theme.spacingMd
         anchors.right: parent.right
         anchors.rightMargin: Theme.spacingMd
         anchors.bottom: parent.bottom
