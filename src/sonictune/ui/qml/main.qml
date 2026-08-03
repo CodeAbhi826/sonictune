@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Window
@@ -79,15 +80,17 @@ ApplicationWindow {
             color: Theme.outline
         }
 
-        ColumnLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 0
+
+            // Padding so the floating PlayerBar doesn't cover content.
+            anchors.topMargin: 0
+            anchors.bottomMargin: 104
 
             StackLayout {
                 id: pageStack
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                anchors.fill: parent
 
                 function switchTo(name) {
                     currentIndex = {
@@ -95,8 +98,7 @@ ApplicationWindow {
                         "search": 1,
                         "library": 2,
                         "stats": 3,
-                        "nowplaying": 4,
-                        "settings": 5
+                        "settings": 4
                     }[name] || 0
                 }
 
@@ -107,26 +109,44 @@ ApplicationWindow {
                     onNavigateRequested: function(name) { pageStack.switchTo(name) }
                 }
                 StatsPage { id: statsPage }
-                NowPlayingPage {
-                    id: nowPlayingPage
-                    onQueueRequested: queueDrawer.open()
-                }
                 SettingsPage { id: settingsPage }
             }
+        }
+    }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: Theme.outline
-            }
+    // --- Floating PlayerBar ------------------------------------------------
+    PlayerBar {
+        id: playerBar
+        anchors.left: navRail.right
+        anchors.leftMargin: Theme.spacingMd
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.spacingMd
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Theme.spacingMd
+        height: 72
+        z: 10
+        onQueueRequested: queueDrawer.open()
+        onOpenNowPlaying: nowPlayingDrawer.open()
+    }
 
-            PlayerBar {
-                id: playerBar
-                Layout.fillWidth: true
-                Layout.preferredHeight: 88
-                onQueueRequested: queueDrawer.open()
-                onOpenNowPlaying: pageStack.switchTo("nowplaying")
-            }
+    // --- Now Playing overlay (Drawer from the bottom edge) ------------------
+    Drawer {
+        id: nowPlayingDrawer
+        edge: Qt.BottomEdge
+        width: parent.width
+        height: parent.height
+        interactive: false
+        modal: true
+        dragMargin: 0
+
+        background: Rectangle {
+            color: Theme.background
+        }
+
+        NowPlayingPage {
+            anchors.fill: parent
+            onQueueRequested: queueDrawer.open()
+            onCloseRequested: nowPlayingDrawer.close()
         }
     }
 
@@ -161,6 +181,10 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+Q"
         onActivated: queueDrawer.open()
+    }
+    Shortcut {
+        sequence: "Escape"
+        onActivated: nowPlayingDrawer.close()
     }
 
     Connections {

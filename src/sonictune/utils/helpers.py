@@ -41,7 +41,7 @@ def humanize_bytes(n: int) -> str:
     """Format bytes as '1.2 MB', '342 KB', etc."""
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if abs(n) < 1024:
-            return f"{n:.1f} {unit}" if unit != "B" else f"{n} {unit}"
+            return f"{int(n)} B" if unit == "B" else f"{n:.1f} {unit}"
         n /= 1024
     return f"{n:.1f} PB"
 

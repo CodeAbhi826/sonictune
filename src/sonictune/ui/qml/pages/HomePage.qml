@@ -1,14 +1,10 @@
-// pages/HomePage.qml — personalized home feed.
-//
-// BUGFIX: this page used to never call anything — Daemon.getHome() didn't
-// even exist as a callable Slot, so `sections` was always [] and the page
-// sat on its "loading" placeholder forever. Daemon.getHome()/homeReceived
-// now exist (see dbus_client.py) and are wired up below.
+// pages/HomePage.qml — ArchiveTune-inspired home feed.
+// "SonicTune" header, a row of mood chips, then horizontally scrolling
+// sections of AlbumCards fed by Daemon.getHome().
 
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
 import "../components"
@@ -19,6 +15,15 @@ Item {
     property var sections: []
     property bool loading: true
     property bool loadError: false
+
+    readonly property var moods: [
+        { label: qsTr("Feel good") },
+        { label: qsTr("Sad") },
+        { label: qsTr("Energize") },
+        { label: qsTr("Relax") },
+        { label: qsTr("Romance") },
+        { label: qsTr("Focus") }
+    ]
 
     Connections {
         target: Daemon
@@ -55,12 +60,13 @@ Item {
             width: homePage.width
             spacing: Theme.spacingLg
 
+            // --- Header ---------------------------------------------------
             RowLayout {
                 Layout.fillWidth: true
                 Layout.margins: Theme.spacingLg
                 Layout.bottomMargin: 0
 
-                Text { text: qsTr("Home"); color: Theme.onSurface; font: Theme.fontHeadlineMedium }
+                Text { text: qsTr("SonicTune"); color: Theme.onSurface; font: Theme.fontHeadline }
                 Item { Layout.fillWidth: true }
                 Item {
                     Layout.preferredWidth: 30
@@ -70,6 +76,49 @@ Item {
                 }
             }
 
+            // --- Mood chips ------------------------------------------------
+            Flow {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.spacingLg
+                Layout.rightMargin: Theme.spacingLg
+                spacing: Theme.spacingSm
+
+                Repeater {
+                    model: homePage.moods
+                    delegate: Rectangle {
+                        id: moodChip
+                        required property var modelData
+                        height: 36
+                        width: moodLabel.implicitWidth + Theme.spacingLg
+                        radius: Theme.radiusFull
+                        color: moodArea.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceElevated
+                        border.width: 1
+                        border.color: Theme.outline
+
+                        Behavior on color { ColorAnimation { duration: Theme.durationFast } }
+
+                        Text {
+                            id: moodLabel
+                            anchors.centerIn: parent
+                            text: moodChip.modelData.label
+                            color: Theme.onSurfaceVariant
+                            font: Theme.fontLabelLarge
+                        }
+
+                        MouseArea {
+                            id: moodArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                Daemon.search(moodChip.modelData.label, "songs", 20)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Sections of cards ------------------------------------------
             Repeater {
                 model: homePage.sections
 
@@ -80,7 +129,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.leftMargin: Theme.spacingLg
                     spacing: Theme.spacingSm
-                    visible: (sectionDelegate.modelData.contents || []).length > 0
+                    visible: (sectionDelegate.modelData.items || []).length > 0
 
                     Text {
                         text: sectionDelegate.modelData.title || ""
@@ -90,34 +139,29 @@ Item {
 
                     ScrollView {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 232
-                        contentHeight: 224
+                        Layout.preferredHeight: 236
+                        contentHeight: 236
                         ScrollBar.vertical.policy: ScrollBar.AlwaysOff
 
                         RowLayout {
-                            height: 224
+                            height: 236
                             spacing: Theme.spacingMd
 
                             Repeater {
-                                model: sectionDelegate.modelData.contents || []
+                                model: sectionDelegate.modelData.items || []
 
                                 delegate: AlbumCard {
                                     id: itemCard
                                     required property var modelData
 
-                                    title: itemCard.modelData.title || itemCard.modelData.name || qsTr("Unknown")
-                                    subtitle: (itemCard.modelData.artists && itemCard.modelData.artists.length > 0)
-                                        ? itemCard.modelData.artists.map(function(a) { return a.name }).join(", ")
-                                        : (itemCard.modelData.subtitle || itemCard.modelData.album || "")
-                                    thumbnailUrl: (itemCard.modelData.thumbnails && itemCard.modelData.thumbnails.length > 0)
-                                        ? itemCard.modelData.thumbnails[itemCard.modelData.thumbnails.length - 1].url
-                                        : ""
+                                    title: itemCard.modelData.title || qsTr("Unknown")
+                                    subtitle: itemCard.modelData.subtitle || ""
+                                    thumbnailUrl: itemCard.modelData.thumbnail_url || ""
                                     onClicked: {
-                                        if (itemCard.modelData.videoId) {
-                                            Daemon.playTrack(itemCard.modelData.videoId)
-                                        } else {
-                                            var q = itemCard.modelData.title || itemCard.modelData.name || ""
-                                            if (q) Daemon.search(q, "", 20)
+                                        if (itemCard.modelData.video_id) {
+                                            Daemon.playTrack(itemCard.modelData.video_id)
+                                        } else if (itemCard.modelData.browse_id) {
+                                            Daemon.search(itemCard.title, "songs", 20)
                                         }
                                     }
                                 }
@@ -129,7 +173,7 @@ Item {
                 }
             }
 
-            Item { Layout.preferredHeight: Theme.spacingLg }
+            Item { Layout.preferredHeight: Theme.spacingXl }
         }
     }
 
@@ -150,7 +194,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             text: homePage.loadError
                 ? qsTr("Couldn't load your home feed")
-                : qsTr("Nothing to show here yet")
+                : qsTr("Your home feed is empty")
             color: Theme.onSurface
             font: Theme.fontTitleMedium
             horizontalAlignment: Text.AlignHCenter
@@ -159,17 +203,17 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             text: homePage.loadError
-                ? qsTr("Check that the daemon is running, or try again.")
+                ? qsTr("Try again, or head to Search.")
                 : qsTr("Sign in from Settings for personalized recommendations, or head to Search.")
             color: Theme.onSurfaceVariant
             font: Theme.fontBodySmall
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
         }
-        Button {
+        STButton {
             Layout.alignment: Qt.AlignHCenter
             text: qsTr("Try again")
-            flat: true
+            variant: "tonal"
             onClicked: homePage.reload()
         }
     }

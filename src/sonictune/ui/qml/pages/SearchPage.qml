@@ -1,4 +1,6 @@
-// pages/SearchPage.qml — search with type filters and recent-search chips.
+// pages/SearchPage.qml — search with debounce, filter chips, and results.
+// BUGFIX: searches now debounce 300ms after typing stops (was search-on-Enter
+// only), so results appear as you type.
 
 pragma ComponentBehavior: Bound
 
@@ -46,6 +48,13 @@ Item {
 
     Component.onCompleted: Daemon.getSearchHistory()
 
+    // 300ms debounce after typing stops.
+    Timer {
+        id: debounce
+        interval: 300
+        onTriggered: searchPage.runSearch()
+    }
+
     function runSearch() {
         var q = searchField.text.trim()
         if (!q) return
@@ -64,10 +73,10 @@ Item {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 46
-            radius: Theme.radiusPill
-            color: Theme.surfaceContainer
-            border.color: searchField.activeFocus ? Theme.primary : "transparent"
+            Layout.preferredHeight: 48
+            radius: Theme.radiusMd
+            color: Theme.surface
+            border.color: searchField.activeFocus ? Theme.primary : Theme.outline
             border.width: 1
 
             RowLayout {
@@ -76,7 +85,7 @@ Item {
                 anchors.rightMargin: Theme.spacingSm
                 spacing: Theme.spacingSm
 
-                Icon { name: "search"; size: 16; color: Theme.onSurfaceVariant }
+                Icon { name: "search"; size: 18; color: Theme.onSurfaceVariant }
 
                 TextField {
                     id: searchField
@@ -85,18 +94,30 @@ Item {
                     background: Item {}
                     color: Theme.onSurface
                     selectionColor: Theme.primaryContainer
-                    onAccepted: searchPage.runSearch()
+                    onTextChanged: {
+                        debounce.restart()
+                        if (searchField.text.trim() === "") {
+                            searchPage.results = []
+                            searchPage.searched = false
+                        }
+                    }
+                    onAccepted: { debounce.stop(); searchPage.runSearch() }
                 }
 
                 Item {
                     Layout.preferredWidth: 26
                     Layout.preferredHeight: 26
                     visible: searchField.text.length > 0
-                    Icon { anchors.centerIn: parent; name: "close"; size: 12; color: Theme.onSurfaceVariant }
+                    Icon { anchors.centerIn: parent; name: "close"; size: 14; color: Theme.onSurfaceVariant }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: { searchField.text = ""; searchPage.results = []; searchPage.searched = false }
+                        onClicked: {
+                            searchField.text = ""
+                            debounce.stop()
+                            searchPage.results = []
+                            searchPage.searched = false
+                        }
                     }
                 }
             }
@@ -112,11 +133,11 @@ Item {
                     id: filterChip
                     required property var modelData
                     readonly property bool active: searchPage.activeFilter === modelData.key
-                    Layout.preferredHeight: 32
-                    Layout.preferredWidth: filterLabel.implicitWidth + Theme.spacingMd * 2
-                    radius: Theme.radiusPill
-                    color: filterChip.active ? Theme.primaryContainer : Theme.surfaceContainer
-                    border.color: filterChip.active ? Theme.primary : "transparent"
+                    Layout.preferredHeight: 36
+                    Layout.preferredWidth: filterLabel.implicitWidth + Theme.spacingLg
+                    radius: Theme.radiusFull
+                    color: filterChip.active ? Theme.primaryContainer : Theme.surface
+                    border.color: filterChip.active ? Theme.primary : Theme.outline
                     border.width: 1
 
                     Text {
@@ -158,10 +179,12 @@ Item {
                     delegate: Rectangle {
                         id: recentChip
                         required property var modelData
-                        radius: Theme.radiusPill
-                        color: Theme.surfaceContainer
-                        height: 32
-                        width: recentLabel.implicitWidth + Theme.spacingMd * 2
+                        radius: Theme.radiusFull
+                        color: Theme.surface
+                        border.width: 1
+                        border.color: Theme.outline
+                        height: 36
+                        width: recentLabel.implicitWidth + Theme.spacingLg
 
                         RowLayout {
                             anchors.centerIn: parent
@@ -268,7 +291,7 @@ Item {
             Icon { Layout.alignment: Qt.AlignHCenter; name: "search"; size: 28; color: Theme.onSurfaceVariant }
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: qsTr("No results")
+                text: qsTr("No results found")
                 color: Theme.onSurfaceVariant
                 font: Theme.fontBodyMedium
             }

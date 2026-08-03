@@ -1,7 +1,11 @@
-// components/TrackList.qml — list of tracks with play/add-to-queue actions.
+// components/TrackList.qml — numbered track list with play/add-to-queue.
 //
 // Expects a `tracks` model: list of { video_id, title, artist, album,
 // duration_ms, thumbnail_url }.
+//
+// Numbered indices render in the mono font; hovering swaps the number for
+// a play glyph. The active (currently playing) row gets a primaryContainer
+// background.
 
 pragma ComponentBehavior: Bound
 
@@ -28,17 +32,18 @@ Rectangle {
         anchors.fill: parent
         clip: true
         model: root.tracks
-        spacing: 1
+        spacing: 2
         boundsBehavior: Flickable.StopAtBounds
 
         delegate: Rectangle {
             id: row
             required property var modelData
+            required property int index
 
             width: list.width
             height: 60
             readonly property bool isCurrent: modelData.video_id === root.currentVideoId
-            radius: Theme.radiusSm
+            radius: Theme.radiusMd
             color: isCurrent
                 ? Theme.primaryContainer
                 : (mouseArea.containsMouse ? Theme.surfaceContainer : "transparent")
@@ -47,53 +52,54 @@ Rectangle {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.spacingSm
-                anchors.rightMargin: Theme.spacingSm
+                anchors.leftMargin: Theme.spacingMd
+                anchors.rightMargin: Theme.spacingMd
                 spacing: Theme.spacingSm
 
+                // Numbered index (mono) -> play glyph on hover/current.
                 Item {
-                    Layout.preferredWidth: 40
+                    Layout.preferredWidth: 24
                     Layout.preferredHeight: 40
 
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: Theme.radiusSm
-                        color: Theme.surfaceContainerHigh
-                        clip: true
-                        visible: !row.isCurrent || !mouseArea.containsMouse
-
-                        Image {
-                            anchors.fill: parent
-                            source: row.modelData.thumbnail_url
-                                ? "image://art/" + encodeURIComponent(row.modelData.thumbnail_url)
-                                : ""
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                        }
-
-                        Icon {
-                            anchors.centerIn: parent
-                            visible: !row.modelData.thumbnail_url
-                            name: "note"
-                            size: 16
-                            color: Theme.onSurfaceVariant
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        visible: !mouseArea.containsMouse && !row.isCurrent
+                        text: (row.index + 1) + "."
+                        color: Theme.onSurfaceMuted
+                        font: Theme.fontMono
                     }
 
-                    // Hover / current-track "play" affordance replaces the art.
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: Theme.radiusSm
-                        color: Theme.primary
+                    Icon {
+                        anchors.centerIn: parent
                         visible: mouseArea.containsMouse || row.isCurrent
+                        name: "play"
+                        size: 16
+                        color: row.isCurrent ? Theme.primary : Theme.onSurface
+                    }
+                }
 
-                        Icon {
-                            anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: row.isCurrent && !mouseArea.containsMouse ? 0 : 1
-                            name: row.isCurrent && !mouseArea.containsMouse ? "note" : "play"
-                            size: 15
-                            color: Theme.onPrimary
-                        }
+                Rectangle {
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                    radius: Theme.radiusSm
+                    color: Theme.surfaceContainerHigh
+                    clip: true
+
+                    Image {
+                        anchors.fill: parent
+                        source: row.modelData.thumbnail_url
+                            ? "image://art/" + encodeURIComponent(row.modelData.thumbnail_url)
+                            : ""
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                    }
+
+                    Icon {
+                        anchors.centerIn: parent
+                        visible: !row.modelData.thumbnail_url
+                        name: "note"
+                        size: 16
+                        color: Theme.onSurfaceVariant
                     }
                 }
 
@@ -104,7 +110,7 @@ Rectangle {
                     Text {
                         Layout.fillWidth: true
                         text: row.modelData.title || qsTr("Unknown title")
-                        color: row.isCurrent ? Theme.primary : Theme.onSurface
+                        color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurface
                         font: Theme.fontBodyLarge
                         elide: Text.ElideRight
                     }
@@ -112,7 +118,7 @@ Rectangle {
                     Text {
                         Layout.fillWidth: true
                         text: row.modelData.artist + (row.modelData.album ? "  ·  " + row.modelData.album : "")
-                        color: Theme.onSurfaceVariant
+                        color: row.isCurrent ? Theme.onSurfaceVariant : Theme.onSurfaceVariant
                         font: Theme.fontBodySmall
                         elide: Text.ElideRight
                     }
@@ -120,7 +126,7 @@ Rectangle {
 
                 Text {
                     text: root.formatTime(row.modelData.duration_ms || 0)
-                    color: Theme.onSurfaceVariant
+                    color: Theme.onSurfaceMuted
                     font: Theme.fontMono
                     Layout.preferredWidth: 44
                     horizontalAlignment: Text.AlignRight

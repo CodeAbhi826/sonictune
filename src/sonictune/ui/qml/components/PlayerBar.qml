@@ -1,6 +1,7 @@
-// components/PlayerBar.qml — persistent transport bar at the bottom of the
-// window: art + track info (click to open Now Playing), transport
-// controls with the waveform seek bar, volume, and queue access.
+// components/PlayerBar.qml — floating bottom player bar (ArchiveTune style).
+// Rounded 16px corners, 2px mini seek bar along the top edge, album art +
+// track info on the left (click opens Now Playing), transport in the
+// center, volume + queue on the right.
 
 import QtQuick
 import QtQuick.Controls.Material
@@ -9,7 +10,11 @@ import "../theme"
 
 Rectangle {
     id: playerBar
-    color: Theme.surface
+    radius: Theme.radiusLg
+    color: Theme.playerBarBg
+    border.width: 1
+    border.color: Theme.outline
+    clip: true
 
     signal queueRequested()
     signal openNowPlaying()
@@ -46,6 +51,16 @@ Rectangle {
 
     Component.onCompleted: Daemon.getStatus()
 
+    // --- Mini seek bar at the top (2px) --------------------------------
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: parent.width * (playerBar.durationMs > 0 ? playerBar.positionMs / playerBar.durationMs : 0)
+        height: 2
+        color: Theme.primary
+        Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: Theme.spacingMd
@@ -65,7 +80,7 @@ Rectangle {
                 Rectangle {
                     Layout.preferredWidth: 56
                     Layout.preferredHeight: 56
-                    radius: Theme.radiusMd
+                    radius: Theme.radiusSm
                     color: Theme.surfaceContainer
                     clip: true
 
@@ -116,86 +131,46 @@ Rectangle {
             }
         }
 
-        // --- Transport + seek -------------------------------------------
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 2
+        // --- Transport ------------------------------------------------
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Theme.spacingSm
 
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: Theme.spacingSm
-
-                IconButton {
-                    icon: "shuffle"
-                    diameter: 30
-                    iconSize: 14
-                    highlighted: playerBar.status.shuffle === true
-                    onClicked: Daemon.setShuffle(!playerBar.status.shuffle)
-                }
-                IconButton {
-                    icon: "previous"
-                    diameter: 34
-                    iconSize: 16
-                    onClicked: Daemon.previous()
-                }
-                IconButton {
-                    icon: playerBar.isPlaying ? "pause" : "play"
-                    diameter: 44
-                    iconSize: 18
-                    prominent: true
-                    onClicked: Daemon.playPause()
-                }
-                IconButton {
-                    icon: "next"
-                    diameter: 34
-                    iconSize: 16
-                    onClicked: Daemon.next()
-                }
-                IconButton {
-                    property string mode: playerBar.status.repeat || "off"
-                    icon: mode === "one" ? "repeatOne" : "repeat"
-                    diameter: 30
-                    iconSize: 14
-                    highlighted: mode !== "off"
-                    onClicked: {
-                        var next = mode === "off" ? "all" : mode === "all" ? "one" : "off"
-                        Daemon.setRepeat(next)
-                    }
-                }
+            IconButton {
+                icon: playerBar.isPlaying ? "pause" : "play"
+                diameter: 48
+                iconSize: 22
+                prominent: true
+                onClicked: Daemon.playPause()
             }
+            IconButton {
+                icon: "previous"
+                diameter: 32
+                iconSize: 16
+                onClicked: Daemon.previous()
+            }
+            IconButton {
+                icon: "next"
+                diameter: 32
+                iconSize: 16
+                onClicked: Daemon.next()
+            }
+        }
 
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.maximumWidth: 640
-                Layout.alignment: Qt.AlignHCenter
-                spacing: Theme.spacingSm
+        // --- Seek time (center, hidden on narrow windows) ---------------
+        Item { Layout.fillWidth: true }
 
-                Text {
-                    text: playerBar.formatTime(playerBar.positionMs)
-                    color: Theme.onSurfaceVariant
-                    font: Theme.fontMono
-                    Layout.preferredWidth: 40
-                }
-
-                WaveformSeekBar {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 24
-                    positionMs: playerBar.positionMs
-                    durationMs: playerBar.durationMs
-                    trackKey: playerBar.currentTrack.video_id || ""
-                    barWidth: 2.5
-                    barSpacing: 2
-                    onSeekRequested: function(ms) { Daemon.seek(ms) }
-                }
-
-                Text {
-                    text: playerBar.formatTime(playerBar.durationMs)
-                    color: Theme.onSurfaceVariant
-                    font: Theme.fontMono
-                    Layout.preferredWidth: 40
-                    horizontalAlignment: Text.AlignRight
-                }
+        RowLayout {
+            spacing: Theme.spacingSm
+            Text {
+                text: playerBar.formatTime(playerBar.positionMs)
+                color: Theme.onSurfaceMuted
+                font: Theme.fontMono
+            }
+            Text {
+                text: " / " + playerBar.formatTime(playerBar.durationMs)
+                color: Theme.onSurfaceMuted
+                font: Theme.fontMono
             }
         }
 
@@ -230,7 +205,7 @@ Rectangle {
                         width: volumeSlider.visualPosition * parent.width
                         height: parent.height
                         radius: parent.radius
-                        color: Theme.onSurfaceVariant
+                        color: Theme.primary
                     }
                 }
 
@@ -243,8 +218,6 @@ Rectangle {
                     color: Theme.onSurface
                 }
             }
-
-            Item { Layout.fillWidth: true }
 
             IconButton {
                 icon: "queue"

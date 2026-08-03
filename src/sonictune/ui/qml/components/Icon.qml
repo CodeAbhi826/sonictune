@@ -148,6 +148,10 @@ Item {
                     }
                 }
                 break
+            case "speaker":
+                speaker(ctx)
+                ctx.fill()
+                break
             case "close":
                 ctx.beginPath(); ctx.moveTo(6.5, 6.5); ctx.lineTo(17.5, 17.5); ctx.stroke()
                 ctx.beginPath(); ctx.moveTo(17.5, 6.5); ctx.lineTo(6.5, 17.5); ctx.stroke()
@@ -192,6 +196,76 @@ Item {
                 ctx.beginPath(); ctx.moveTo(12, 12); ctx.lineTo(12, 7); ctx.stroke()
                 ctx.beginPath(); ctx.moveTo(12, 12); ctx.lineTo(15.5, 14); ctx.stroke()
                 break
+            case "arrowBack":
+                ctx.beginPath(); ctx.moveTo(19, 12); ctx.lineTo(6, 12); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(11, 6); ctx.lineTo(5.5, 12); ctx.lineTo(11, 18); ctx.stroke()
+                break
+            case "moreVert":
+                ctx.beginPath(); ctx.arc(12, 6, 1.6, 0, Math.PI * 2); ctx.fill()
+                ctx.beginPath(); ctx.arc(12, 12, 1.6, 0, Math.PI * 2); ctx.fill()
+                ctx.beginPath(); ctx.arc(12, 18, 1.6, 0, Math.PI * 2); ctx.fill()
+                break
+            case "favorite":
+                heart(ctx)
+                ctx.fill()
+                break
+            case "favoriteBorder":
+                heart(ctx)
+                ctx.stroke()
+                break
+            case "lyrics":
+                roundRect(ctx, 4, 7, 12, 3, 1.5); ctx.fill()
+                roundRect(ctx, 4, 11.5, 16, 3, 1.5); ctx.fill()
+                roundRect(ctx, 4, 16, 8, 3, 1.5); ctx.fill()
+                ctx.beginPath()
+                ctx.moveTo(17.5, 12.5); ctx.lineTo(17.5, 19.5); ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(14.5, 16); ctx.lineTo(20.5, 16); ctx.stroke()
+                break
+            case "timer":
+                ctx.beginPath(); ctx.moveTo(10, 4); ctx.lineTo(14, 4); ctx.stroke()
+                ctx.beginPath(); ctx.arc(12, 13, 7.5, 0, Math.PI * 2); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(12, 13); ctx.lineTo(12, 9); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(12, 9); ctx.lineTo(14.5, 11); ctx.stroke()
+                break
+            case "share":
+                ctx.beginPath(); ctx.arc(6.5, 12, 3.2, 0, Math.PI * 2); ctx.stroke()
+                ctx.beginPath(); ctx.arc(17.5, 6.5, 3.2, 0, Math.PI * 2); ctx.stroke()
+                ctx.beginPath(); ctx.arc(17.5, 17.5, 3.2, 0, Math.PI * 2); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(9.6, 10.8); ctx.lineTo(14.4, 7.7); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(9.6, 13.2); ctx.lineTo(14.4, 16.3); ctx.stroke()
+                break
+            case "chevronRight":
+                ctx.beginPath(); ctx.moveTo(9, 5.5); ctx.lineTo(16, 12); ctx.lineTo(9, 18.5); ctx.stroke()
+                break
+            case "chevronLeft":
+                ctx.beginPath(); ctx.moveTo(15, 5.5); ctx.lineTo(8, 12); ctx.lineTo(15, 18.5); ctx.stroke()
+                break
+            case "person":
+                ctx.beginPath(); ctx.arc(12, 7.5, 4, 0, Math.PI * 2); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(4.5, 20); ctx.quadraticCurveTo(12, 11, 19.5, 20); ctx.stroke()
+                break
+            case "album":
+                ctx.beginPath(); ctx.arc(12, 12, 8, 0, Math.PI * 2); ctx.stroke()
+                ctx.beginPath(); ctx.arc(12, 12, 3.2, 0, Math.PI * 2); ctx.fill()
+                break
+            case "musicNote":
+                drawEllipse(ctx, 9, 17.2, 3.1, 2.4); ctx.fill()
+                ctx.beginPath()
+                ctx.moveTo(11.9, 17.2); ctx.lineTo(11.9, 4.5); ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(11.9, 4.5); ctx.lineTo(18, 7); ctx.lineTo(11.9, 9.6)
+                ctx.closePath(); ctx.fill()
+                break
+            case "cast":
+                ctx.beginPath()
+                ctx.moveTo(3.5, 9); ctx.quadraticCurveTo(3.5, 5.5, 7, 5.5); ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(3.5, 18.5); ctx.quadraticCurveTo(3.5, 20.5, 5.5, 20.5); ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(3.5, 12); ctx.quadraticCurveTo(3.5, 8, 7.5, 8); ctx.stroke()
+                roundRect(ctx, 7.5, 16.5, 3, 4, 1.5); ctx.fill()
+                break
             default:
                 ctx.beginPath(); ctx.arc(12, 12, 3, 0, Math.PI * 2); ctx.fill()
             }
@@ -221,6 +295,18 @@ Item {
             var ex = 12 + 7.4 * Math.cos(endAngle)
             var ey = 12 + 7.4 * Math.sin(endAngle)
             arrowHead(ctx, ex, ey, endAngle * 180 / Math.PI + 90)
+        }
+
+        function heart(ctx) {
+            ctx.beginPath()
+            ctx.moveTo(12, 19.5)
+            ctx.bezierCurveTo(6.5, 15, 3.5, 11.5, 3.5, 8.2)
+            ctx.bezierCurveTo(3.5, 5.5, 5.6, 4, 7.8, 4)
+            ctx.bezierCurveTo(9.8, 4, 11.2, 5, 12, 6.4)
+            ctx.bezierCurveTo(12.8, 5, 14.2, 4, 16.2, 4)
+            ctx.bezierCurveTo(18.4, 4, 20.5, 5.5, 20.5, 8.2)
+            ctx.bezierCurveTo(20.5, 11.5, 17.5, 15, 12, 19.5)
+            ctx.closePath()
         }
 
         function slider(ctx, cy, knobX) {

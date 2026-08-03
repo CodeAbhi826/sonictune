@@ -78,7 +78,7 @@ Item {
                 TrackList {
                     width: libraryPage.width - Theme.spacingLg * 2
                     tracks: libraryPage.songs
-                    emptyMessage: qsTr("No saved songs yet")
+                    emptyMessage: qsTr("Your library is empty")
                     onPlayTrack: function(id) { Daemon.playTrack(id) }
                     onAddToQueue: function(id) { Daemon.addToQueue(id, false) }
                 }
@@ -95,8 +95,9 @@ Item {
                             id: albumItem
                             required property var modelData
                             title: albumItem.modelData.title || ""
-                            subtitle: (albumItem.modelData.artists || []).map(function(a) { return a.name }).join(", ")
-                            thumbnailUrl: (albumItem.modelData.thumbnails && albumItem.modelData.thumbnails.length) ? albumItem.modelData.thumbnails[albumItem.modelData.thumbnails.length - 1].url : ""
+                            subtitle: albumItem.modelData.artist || ""
+                            thumbnailUrl: albumItem.modelData.thumbnail_url || ""
+                            browseId: albumItem.modelData.browse_id || ""
                             onClicked: Daemon.search(title, "songs", 20)
                         }
                     }
@@ -114,9 +115,9 @@ Item {
                             id: playlistItem
                             required property var modelData
                             title: playlistItem.modelData.title || ""
-                            subtitle: playlistItem.modelData.author || ""
-                            trackCount: playlistItem.modelData.count || 0
-                            thumbnailUrl: (playlistItem.modelData.thumbnails && playlistItem.modelData.thumbnails.length) ? playlistItem.modelData.thumbnails[playlistItem.modelData.thumbnails.length - 1].url : ""
+                            subtitle: playlistItem.modelData.owner || ""
+                            trackCount: playlistItem.modelData.track_count || 0
+                            thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
                             onClicked: Daemon.search(title, "songs", 20)
                         }
                     }
@@ -161,9 +162,6 @@ Item {
         message: qsTr("Syncing your library…")
     }
 
-    // main.qml's StackLayout owns navigation; reach it via the shared
-    // Daemon-style pattern isn't available here, so expose a tiny signal
-    // instead and let main.qml wire it once, same as PlayerBar does.
     signal navigateRequested(string pageName)
     function pageStackSwitch(name) { navigateRequested(name) }
 }

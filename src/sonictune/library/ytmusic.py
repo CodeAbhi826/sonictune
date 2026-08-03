@@ -330,12 +330,20 @@ class YTMusicLibrary:
     async def add_to_history(self, video_id: str) -> bool:
         """Report a play back to YT Music (for YouTube Recap).
 
-        Returns True if accepted. Rate-limited: max 1 call / 10s per video.
+        Uses ``ytmusicapi.add_history_item()`` to record the play so it counts
+        toward the user's YT Music listening history / Recap. Returns True if
+        accepted. Silent (returns False) when the client is unavailable or the
+        call fails — history reporting must never break playback.
         """
-        # TODO: Phase 2 — ytmusicapi.add_history_item() is undocumented and
-        # requires careful rate-limiting. For now we just log locally.
-        log.info("library.history_sync_pending", video_id=video_id)
-        return False
+        if self._ytm is None:
+            return False
+        try:
+            await asyncio.to_thread(self._ytm.add_history_item, video_id)
+            log.info("history.reported", video_id=video_id)
+            return True
+        except Exception as e:
+            log.warning("history.report_failed", video_id=video_id, error=str(e))
+            return False
 
 
 __all__ = ["YTMusicLibrary"]

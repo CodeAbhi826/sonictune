@@ -1,7 +1,8 @@
 // components/NavRail.qml — left navigation rail.
-// A quiet vertical strip: mark at top, six destinations below, each with
-// a thin accent indicator on the active item rather than a filled pill —
-// reads as precise/instrumented rather than "bouncy app nav".
+// A quiet vertical strip: mark at top, FIVE destinations below (Home,
+// Search, Library, Stats, Settings). The Now Playing view is NOT a rail
+// destination — it opens as a full-screen overlay from the bottom player
+// bar (see main.qml).
 
 pragma ComponentBehavior: Bound
 
@@ -22,7 +23,6 @@ Rectangle {
         { name: "search",     icon: "search",   label: qsTr("Search") },
         { name: "library",    icon: "library",  label: qsTr("Library") },
         { name: "stats",      icon: "stats",    label: qsTr("Stats") },
-        { name: "nowplaying", icon: "note",     label: qsTr("Playing") },
         { name: "settings",   icon: "settings", label: qsTr("Settings") }
     ]
 
@@ -39,7 +39,7 @@ Rectangle {
 
             Rectangle {
                 anchors.fill: parent
-                radius: Theme.radiusMd
+                radius: Theme.radiusFull
                 color: Theme.primary
 
                 Icon { anchors.centerIn: parent; name: "note"; size: 20; color: Theme.onPrimary }
@@ -65,7 +65,7 @@ Rectangle {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     width: 3
-                    height: navItem.active ? 22 : 0
+                    height: navItem.active ? 24 : 0
                     radius: 2
                     color: Theme.primary
                     Behavior on height { NumberAnimation { duration: Theme.durationBase; easing.type: Theme.easingStandard } }
@@ -75,8 +75,8 @@ Rectangle {
                     anchors.fill: parent
                     anchors.leftMargin: 8
                     anchors.rightMargin: 8
-                    radius: Theme.radiusMd
-                    color: navItem.active ? Theme.primaryContainer : (ma.containsMouse ? Theme.surfaceContainer : "transparent")
+                    radius: Theme.radiusLg
+                    color: navItem.active ? Theme.surfaceElevated : (ma.containsMouse ? Theme.surfaceContainer : "transparent")
                     Behavior on color { ColorAnimation { duration: Theme.durationFast } }
 
                     ColumnLayout {

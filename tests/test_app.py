@@ -143,6 +143,8 @@ class FakeCache:
 class FakeConfig:
     audio = type("Audio", (), {"itag": 140})()
     cookies_path = "/tmp/sonictune-cookies.txt"
+    ui = type("UI", (), {"report_history": True})()
+    config_dir = None
 
 
 def make_proxy() -> DaemonProxy:
@@ -238,8 +240,25 @@ def test_proxy_slots_exist() -> None:
         "getSearchHistory",
         "syncLibrary",
         "getLyrics",
+        "reportHistory",
+        "setReportHistory",
     ]:
         assert hasattr(proxy, name), f"missing slot {name}"
+
+
+def test_proxy_report_history_default_true() -> None:
+    """reportHistory() reflects the config default (True)."""
+    proxy = make_proxy()
+    assert proxy.reportHistory() is True
+
+
+def test_proxy_set_report_history_updates_config() -> None:
+    """setReportHistory() flips the config value seen by QML."""
+    proxy = make_proxy()
+    proxy.setReportHistory(False)
+    assert proxy.reportHistory() is False
+    proxy.setReportHistory(True)
+    assert proxy.reportHistory() is True
 
 
 # ---- DaemonProxy: player events ----------------------------------------------
@@ -410,3 +429,122 @@ def test_app_creates_queue() -> None:
 def test_app_importable() -> None:
     import sonictune.app
     assert sonictune.app.SonicTuneApp
+
+
+# ---- YouTube Music history reporting ----------------------------------------
+#
+# These drive SonicTuneApp._on_player_event() directly with a lightweight
+# fake `self` so we don't need a full app instance (which would require Qt
+# and a real event loop).
+
+
+class _FakePlayerForHistory:
+    def __init__(self, track: Track | None) -> None:
+        self.current_track = track
+
+    def add_listener(self, callback) -> None:
+        pass
+
+
+class _FakeLibraryForHistory:
+    def __init__(self) -> None:
+        self.reported: list[str] = []
+        self.fail = False
+
+    async def add_to_history(self, video_id: str) -> bool:
+        if self.fail:
+            return False
+        self.reported.append(video_id)
+        return True
+
+
+class _FakeUIConfig:
+    report_history = True
+
+
+def _make_history_app(track: Track | None = None, report: bool = True):
+    from sonictune.app import SonicTuneApp
+
+    player = _FakePlayerForHistory(track)
+    lib = _FakeLibraryForHistory()
+    app = type("App", (), {
+        "_history_reported": False,
+        "config": type("Config", (), {"ui": type("UI", (), {"report_history": report})()})(),
+        "player": player,
+        "library": lib,
+    })()
+    # Bind the real reporting helper so the fake behaves like the app.
+    app._report_history = SonicTuneApp._report_history.__get__(app, type(app))
+    return app, lib
+
+
+async def test_history_reported_at_threshold() -> None:
+    """POSITION_CHANGED past min(30s, 50%) reports the play."""
+    from sonictune.app import SonicTuneApp
+    track = Track(video_id="vid123", title="Song", artist="Artist")
+    app, lib = _make_history_app(track=track, report=True)
+    await SonicTuneApp._on_player_event(
+        app, PlayerEvent.POSITION_CHANGED, {"position_ms": 31000, "duration_ms": 180000}
+    )
+    assert app._history_reported is True
+    assert lib.reported == ["vid123"]
+
+
+async def test_history_not_reported_when_disabled() -> None:
+    """report_history=False suppresses reporting entirely."""
+    from sonictune.app import SonicTuneApp
+    track = Track(video_id="vid123", title="Song", artist="Artist")
+    app, lib = _make_history_app(track=track, report=False)
+    await SonicTuneApp._on_player_event(
+        app, PlayerEvent.POSITION_CHANGED, {"position_ms": 31000, "duration_ms": 180000}
+    )
+    assert app._history_reported is False
+    assert lib.reported == []
+
+
+async def test_history_reported_once_per_track() -> None:
+    """Repeated position ticks do not double-report."""
+    from sonictune.app import SonicTuneApp
+    track = Track(video_id="vid123", title="Song", artist="Artist")
+    app, lib = _make_history_app(track=track, report=True)
+    for _ in range(5):
+        await SonicTuneApp._on_player_event(
+            app, PlayerEvent.POSITION_CHANGED, {"position_ms": 31000, "duration_ms": 180000}
+        )
+    assert app._history_reported is True
+    assert lib.reported == ["vid123"]
+
+
+async def test_history_reset_on_track_change() -> None:
+    """A new track resets the per-track guard so it can be reported again."""
+    from sonictune.app import SonicTuneApp
+    track = Track(video_id="vid123", title="Song", artist="Artist")
+    app, _lib = _make_history_app(track=track, report=True)
+    await SonicTuneApp._on_player_event(
+        app, PlayerEvent.POSITION_CHANGED, {"position_ms": 31000, "duration_ms": 180000}
+    )
+    assert app._history_reported is True
+    await SonicTuneApp._on_player_event(app, PlayerEvent.TRACK_CHANGED, {"track": track})
+    assert app._history_reported is False
+
+
+async def test_history_reported_on_end_if_not_already() -> None:
+    """END_REACHED reports when the track ended before the threshold."""
+    from sonictune.app import SonicTuneApp
+    track = Track(video_id="vid123", title="Song", artist="Artist")
+    app, lib = _make_history_app(track=track, report=True)
+    await SonicTuneApp._on_player_event(app, PlayerEvent.END_REACHED, {"track": track})
+    assert app._history_reported is True
+    assert lib.reported == ["vid123"]
+
+
+async def test_history_not_double_reported_on_end() -> None:
+    """END_REACHED after a threshold report does not report twice."""
+    from sonictune.app import SonicTuneApp
+    track = Track(video_id="vid123", title="Song", artist="Artist")
+    app, lib = _make_history_app(track=track, report=True)
+    await SonicTuneApp._on_player_event(
+        app, PlayerEvent.POSITION_CHANGED, {"position_ms": 31000, "duration_ms": 180000}
+    )
+    await SonicTuneApp._on_player_event(app, PlayerEvent.END_REACHED, {"track": track})
+    assert lib.reported == ["vid123"]

@@ -91,6 +91,7 @@ class UIConfig:
     accent_color: str = "#6750A4"  # Material 3 default purple
     volume_step: int = 5
     remember_page: bool = True
+    report_history: bool = True  # Report plays to YouTube Music history/Recap
 
 
 @dataclass
@@ -163,9 +164,10 @@ art_size_mb = 256
 
 [ui]
 theme = "dark"                # dark | light | archive
-accent_color = "#6750A4"
+accent_color = "#C4D6B0"      # ArchiveTune sage green
 volume_step = 5
 remember_page = true
+report_history = true         # Report plays to YouTube Music history/Recap
 
 [discord]
 enabled = false

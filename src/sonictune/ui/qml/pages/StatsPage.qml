@@ -1,10 +1,10 @@
 // pages/StatsPage.qml — listening stats: totals, an hour-of-day chart, and
-// top tracks/artists.
+// top tracks/artists. Consumes the proxy's stats payload (JSON strings for
+// the nested arrays).
 
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
 import "../components"
@@ -14,6 +14,10 @@ Item {
 
     property var stats: ({})
     property bool loading: true
+
+    readonly property var hourly: JSON.parse(statsPage.stats.listening_by_hour_json || "[]")
+    readonly property var topTracks: JSON.parse(statsPage.stats.top_tracks_json || "[]")
+    readonly property var topArtists: JSON.parse(statsPage.stats.top_artists_json || "[]")
 
     Connections {
         target: Daemon
@@ -60,9 +64,9 @@ Item {
                 rowSpacing: Theme.spacingMd
 
                 StatCard { Layout.fillWidth: true; icon: "stats"; label: qsTr("Total plays"); value: String(statsPage.stats.total_plays || 0) }
-                StatCard { Layout.fillWidth: true; icon: "clock"; label: qsTr("Hours listened"); value: statsPage.formatHours(statsPage.stats.total_ms_played || 0) }
+                StatCard { Layout.fillWidth: true; icon: "clock"; label: qsTr("Hours listened"); value: statsPage.formatHours(Number(statsPage.stats.total_listen_ms || 0)) }
                 StatCard { Layout.fillWidth: true; icon: "note"; label: qsTr("Unique tracks"); value: String(statsPage.stats.unique_tracks || 0) }
-                StatCard { Layout.fillWidth: true; icon: "library"; label: qsTr("This week"); value: String(statsPage.stats.plays_this_week || 0) }
+                StatCard { Layout.fillWidth: true; icon: "person"; label: qsTr("Unique artists"); value: String(statsPage.stats.unique_artists || 0) }
             }
 
             ColumnLayout {
@@ -70,14 +74,14 @@ Item {
                 Layout.leftMargin: Theme.spacingLg
                 Layout.rightMargin: Theme.spacingLg
                 spacing: Theme.spacingSm
-                visible: (statsPage.stats.hourly || []).length > 0
+                visible: statsPage.hourly.length > 0
 
                 Text { text: qsTr("Listening by hour of day"); color: Theme.onSurface; font: Theme.fontTitleLarge }
 
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 140
-                    radius: Theme.radiusMd
+                    radius: Theme.radiusLg
                     color: Theme.surfaceContainer
 
                     Row {
@@ -86,7 +90,7 @@ Item {
                         anchors.margins: Theme.spacingMd
                         spacing: 3
 
-                        readonly property var hourly: statsPage.stats.hourly || []
+                        readonly property var hourly: statsPage.hourly
                         readonly property real maxVal: {
                             var m = 1
                             for (var i = 0; i < hourly.length; i++) m = Math.max(m, hourly[i].count || 0)
@@ -124,7 +128,7 @@ Item {
                     Text { text: qsTr("Top tracks"); color: Theme.onSurface; font: Theme.fontTitleLarge }
                     TrackList {
                         Layout.fillWidth: true
-                        tracks: statsPage.stats.top_tracks || []
+                        tracks: statsPage.topTracks
                         emptyMessage: qsTr("Play something to see your top tracks")
                         onPlayTrack: function(id) { Daemon.playTrack(id) }
                         onAddToQueue: function(id) { Daemon.addToQueue(id, false) }
@@ -139,7 +143,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 2
                         Repeater {
-                            model: statsPage.stats.top_artists || []
+                            model: statsPage.topArtists
                             delegate: RowLayout {
                                 id: artistRow
                                 required property var modelData
@@ -148,13 +152,13 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 44
                                 spacing: Theme.spacingSm
-                                Text { text: (artistRow.index + 1) + "."; color: Theme.onSurfaceVariant; font: Theme.fontMono; Layout.preferredWidth: 22 }
+                                Text { text: (artistRow.index + 1) + "."; color: Theme.onSurfaceMuted; font: Theme.fontMono; Layout.preferredWidth: 22 }
                                 Text { Layout.fillWidth: true; text: artistRow.modelData.artist || ""; color: Theme.onSurface; font: Theme.fontBodyLarge; elide: Text.ElideRight }
-                                Text { text: String(artistRow.modelData.count || 0); color: Theme.onSurfaceVariant; font: Theme.fontMono }
+                                Text { text: String(artistRow.modelData.count || 0); color: Theme.onSurfaceMuted; font: Theme.fontMono }
                             }
                         }
                         Text {
-                            visible: (statsPage.stats.top_artists || []).length === 0
+                            visible: statsPage.topArtists.length === 0
                             text: qsTr("No data yet")
                             color: Theme.onSurfaceVariant
                             font: Theme.fontBodyMedium

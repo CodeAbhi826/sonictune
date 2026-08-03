@@ -235,3 +235,50 @@ def test_get_stream_url_caches_result() -> None:
     assert first == "https://direct.google.com/opus"
     assert second == first
     assert fake.calls == ["vidCACHE"]  # only one get_song call
+
+
+# ---- History reporting ------------------------------------------------------
+
+
+class _HistoryYTM:
+    def __init__(self):
+        self.added: list[str] = []
+
+    def add_history_item(self, video_id: str) -> None:
+        self.added.append(video_id)
+
+
+class _HistoryRaisingYTM:
+    def add_history_item(self, video_id: str) -> None:
+        raise RuntimeError("boom")
+
+
+def test_add_to_history_success() -> None:
+    """add_history_item is forwarded to ytmusicapi and returns True."""
+    with TemporaryDirectory() as tmp:
+        lib = YTMusicLibrary(oauth=None, cookies_path=Path(tmp) / "cook.txt")
+        fake = _HistoryYTM()
+        lib._ytm = fake
+        with patch("asyncio.to_thread", side_effect=_fake_to_thread):
+            result = _run(lib.add_to_history("vid123"))
+    assert result is True
+    assert fake.added == ["vid123"]
+
+
+def test_add_to_history_no_client() -> None:
+    """Without an initialized client, reporting is a silent no-op (False)."""
+    with TemporaryDirectory() as tmp:
+        lib = YTMusicLibrary(oauth=None, cookies_path=Path(tmp) / "cook.txt")
+        lib._ytm = None
+        result = _run(lib.add_to_history("vid123"))
+    assert result is False
+
+
+def test_add_to_history_exception_returns_false() -> None:
+    """A failing add_history_item call returns False, never raises."""
+    with TemporaryDirectory() as tmp:
+        lib = YTMusicLibrary(oauth=None, cookies_path=Path(tmp) / "cook.txt")
+        lib._ytm = _HistoryRaisingYTM()
+        with patch("asyncio.to_thread", side_effect=_fake_to_thread):
+            result = _run(lib.add_to_history("vid123"))
+    assert result is False

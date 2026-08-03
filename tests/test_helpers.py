@@ -45,7 +45,9 @@ def test_is_valid_video_id() -> None:
 
 def test_humanize_bytes() -> None:
     assert humanize_bytes(0) == "0 B"
+    assert humanize_bytes(1023) == "1023 B"
     assert humanize_bytes(1024) == "1.0 KB"
+    assert humanize_bytes(1536) == "1.5 KB"
     assert humanize_bytes(1024 * 1024) == "1.0 MB"
     assert humanize_bytes(1024 ** 3) == "1.0 GB"
 

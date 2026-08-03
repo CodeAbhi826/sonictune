@@ -7,7 +7,7 @@ import "../components"
 
 Rectangle {
     id: card
-    radius: Theme.radiusMd
+    radius: Theme.radiusLg
     color: Theme.surfaceContainer
     Layout.preferredHeight: 96
 

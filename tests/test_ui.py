@@ -90,3 +90,61 @@ def test_no_emoji_in_qml() -> None:
         matches = emoji_re.findall(text)
         # Emoji-free: any match is an error.
         assert not matches, f"emoji found in {p}: {matches}"
+
+
+# ---- No redundant Now Playing tab ===========================================
+
+
+def test_navrail_has_exactly_five_items_no_nowplaying() -> None:
+    """The nav rail must keep only Home/Search/Library/Stats/Settings."""
+    navrail = _read("components/NavRail.qml")
+    items = re.findall(r'name:\s*"(\w+)"', navrail)
+    # Rail destinations only (ignore unrelated strings like icon names).
+    rail_names = [n for n in items if n in {
+        "home", "search", "library", "stats", "nowplaying", "settings"
+    }]
+    assert rail_names == ["home", "search", "library", "stats", "settings"]
+    assert "nowplaying" not in rail_names
+
+
+def test_stacklayout_has_no_nowplaying_page() -> None:
+    """main.qml's page-switch mapping must not include a nowplaying tab."""
+    main = _read("main.qml")
+    # The 5-page mapping inside switchTo() — no nowplaying entry.
+    switch = main.split("function switchTo(name) {")[1].split("}")[0]
+    assert '"nowplaying"' not in switch
+    assert '"settings": 4' in switch
+    assert 'NowPlayingPage' not in switch
+
+
+def test_now_playing_opens_via_drawer() -> None:
+    """Now Playing is a Drawer opened from the PlayerBar, not a rail tab."""
+    main = _read("main.qml")
+    assert "edge: Qt.BottomEdge" in main
+    assert "onOpenNowPlaying" in main
+    # NowPlayingPage appears exactly once, inside the Drawer.
+    assert main.count("NowPlayingPage") == 1
+    drawer = main.split("Drawer {")[1]
+    assert "NowPlayingPage" in drawer
+
+
+def test_settings_page_has_history_toggle() -> None:
+    """Settings wires a 'Report plays to YouTube Music' toggle."""
+    settings = _read("pages/SettingsPage.qml")
+    assert "reportHistory" in settings
+    assert "setReportHistory" in settings
+    assert "Report plays to YouTube Music" in settings
+
+
+def test_slider_uses_standard_behavior_no_movedby() -> None:
+    """STSlider must not call the non-existent movedBy() function."""
+    slider = _read("components/STSlider.qml")
+    assert "movedBy" not in slider
+    assert "Slider" in slider
+
+
+def test_stbutton_width_is_textmetric_based() -> None:
+    """STButton must not guess width via 10 * text.length."""
+    button = _read("components/STButton.qml")
+    assert "10 * text.length" not in button
+    assert "implicitWidth" in button

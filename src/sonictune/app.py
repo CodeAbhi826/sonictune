@@ -135,6 +135,8 @@ class SonicTuneApp:
             log.warning("app.mpv_unavailable")
         self.player = PlayerClass(self.config.audio)
         await self.player.init()
+        self._history_reported: bool = False
+        self._wire_history_reporting()
 
         self.art_cache = ArtCache(self.config.cache.art_dir, max_size_mb=self.config.cache.art_size_mb)
         self.audio_cache = AudioCache(self.config.cache.audio_dir, max_size_mb=self.config.cache.audio_size_mb)
@@ -209,6 +211,59 @@ class SonicTuneApp:
 
         self.player.add_listener(_on_event)
         log.info("discord.wired")
+
+    def _wire_history_reporting(self) -> None:
+        """Report plays back to YouTube Music (for YTM Recap/history).
+
+        A play is reported once per track, when the user has listened to
+        50% of the track OR 30 seconds — whichever comes first. If the track
+        ends before the threshold, it is reported on END_REACHED instead.
+        """
+        if not self.player or not self.library:
+            return
+
+        def _on_event(event: object, data: dict) -> None:
+            asyncio.create_task(self._on_player_event(event, data))  # noqa: RUF006
+
+        self.player.add_listener(_on_event)
+        log.info("history.wired", enabled=self.config.ui.report_history)
+
+    async def _on_player_event(self, event: object, data: dict) -> None:
+        """Handle player events for YouTube Music history reporting."""
+        from sonictune.player.types import PlayerEvent
+
+        if event == PlayerEvent.TRACK_CHANGED:
+            self._history_reported = False
+        elif event == PlayerEvent.POSITION_CHANGED:
+            if self._history_reported or not self.config.ui.report_history:
+                return
+            track = self.player.current_track
+            if not track or not track.video_id:
+                return
+            pos = int(data.get("position_ms", 0))
+            dur = int(data.get("duration_ms", 0))
+            threshold = min(30000, dur * 0.5) if dur > 0 else 30000
+            if pos >= threshold:
+                await self._report_history(track.video_id)
+        elif event == PlayerEvent.END_REACHED:
+            track = data.get("track")
+            if not track:
+                track = self.player.current_track
+            if (
+                track
+                and track.video_id
+                and not self._history_reported
+                and self.config.ui.report_history
+            ):
+                await self._report_history(track.video_id)
+
+    async def _report_history(self, video_id: str) -> None:
+        """Report a play to YT Music; guard against double-reporting."""
+        if self._history_reported or not self.library:
+            return
+        ok = await self.library.add_to_history(video_id)
+        if ok:
+            self._history_reported = True
 
     def _setup_qml(self) -> None:
         """Set up QML engine and context properties."""

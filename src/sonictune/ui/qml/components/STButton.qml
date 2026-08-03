@@ -1,8 +1,12 @@
-// components/STButton.qml — reusable Material 3-style button.
+// components/STButton.qml — reusable Material 3-style pill button.
 //
 // Variants: "filled" | "tonal" | "outlined" | "text" | "elevated".
 // Height 40px, full-pill radius, 100ms color transition. Icon (when set) is
 // drawn with the shared Icon component (monochrome Material Symbols glyphs).
+//
+// BUGFIX: width used to be estimated by a fixed per-character constant
+// (monospace assumption) which badly mis-sizes variable-width text. Now the
+// width comes from TextMetrics so it is exact for any font.
 
 import QtQuick
 import theme 1.0
@@ -17,16 +21,21 @@ Item {
     property color color: Theme.primary
     property bool pressed: false
     property bool hovered: false
-    property bool enabled: true
 
     property bool hoverEnabled: true
 
-    implicitWidth: 64
+    implicitWidth: Math.max(64, textMetrics.advanceWidth + (iconName ? iconSize + Theme.spacingSm : 0) + Theme.spacingLg * 2)
     implicitHeight: 40
     height: 40
-    width: _d.bgText() + (iconName ? iconSize + Theme.spacingSm : 0) + Theme.spacingLg * 2
+    width: implicitWidth
 
     signal clicked()
+
+    TextMetrics {
+        id: textMetrics
+        font: Theme.fontLabelLarge
+        text: root.text
+    }
 
     QtObject {
         id: _d
@@ -50,11 +59,6 @@ Item {
                 case "text":     return Theme.primary
             }
             return Theme.onPrimary
-        }
-
-        function bgText(): real {
-            var metrics = 10 * text.length // rough width estimate
-            return text ? Math.max(metrics, iconSize) : 0
         }
     }
 

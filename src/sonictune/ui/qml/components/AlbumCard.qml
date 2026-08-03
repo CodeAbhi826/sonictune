@@ -1,5 +1,5 @@
-// components/AlbumCard.qml — square card showing album/section art + title.
-// Clickable — emits clicked(browseId).
+// components/AlbumCard.qml — ArchiveTune-style card: 180x220, 16px-radius
+// art with a hover play overlay that scales in with OutBack easing.
 
 import QtQuick
 import QtQuick.Layouts
@@ -15,11 +15,11 @@ Rectangle {
 
     signal clicked(string browseId)
 
-    width: 168
-    height: 224
+    width: 180
+    height: 220
     color: "transparent"
 
-    scale: ma.pressed ? 0.98 : 1.0
+    scale: ma.pressed ? 0.97 : 1.0
     Behavior on scale { NumberAnimation { duration: Theme.durationFast } }
 
     ColumnLayout {
@@ -28,8 +28,8 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 168
-            radius: Theme.radiusMd
+            Layout.preferredHeight: 180
+            radius: Theme.radiusLg
             color: Theme.surfaceContainer
             clip: true
 
@@ -43,30 +43,32 @@ Rectangle {
             Icon {
                 anchors.centerIn: parent
                 visible: !card.thumbnailUrl
-                name: "note"
-                size: 26
+                name: "album"
+                size: 30
                 color: Theme.onSurfaceVariant
             }
 
+            // Hover scrim
             Rectangle {
                 anchors.fill: parent
                 color: Theme.scrim
-                opacity: ma.containsMouse ? 0.28 : 0
+                opacity: ma.containsMouse ? 0.5 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
             }
 
+            // Hover play button
             Rectangle {
-                width: 40
-                height: 40
-                radius: 20
+                width: 44
+                height: 44
+                radius: 22
                 anchors.centerIn: parent
                 color: Theme.primary
                 opacity: ma.containsMouse ? 1 : 0
-                scale: ma.containsMouse ? 1 : 0.7
+                scale: ma.containsMouse ? 1.0 : 0.8
                 Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
-                Behavior on scale { NumberAnimation { duration: Theme.durationFast; easing.type: Theme.easingStandard } }
+                Behavior on scale { NumberAnimation { duration: Theme.durationFast; easing.type: Easing.OutBack } }
 
-                Icon { anchors.centerIn: parent; anchors.horizontalCenterOffset: 1; name: "play"; size: 16; color: Theme.onPrimary }
+                Icon { anchors.centerIn: parent; anchors.horizontalCenterOffset: 1; name: "play"; size: 18; color: Theme.onPrimary }
             }
         }
 
@@ -74,7 +76,7 @@ Rectangle {
             Layout.fillWidth: true
             text: card.title
             color: Theme.onSurface
-            font: Theme.fontTitleMedium
+            font: Theme.fontBodyMedium
             elide: Text.ElideRight
         }
 

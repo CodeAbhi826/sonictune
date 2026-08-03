@@ -556,6 +556,52 @@ class DaemonProxy(QObject):
                 self.audioCacheSizeError.emit(str(e))
         asyncio.create_task(_do())
 
+    # === History reporting ===
+
+    @Slot(result=bool)
+    def reportHistory(self) -> bool:
+        """Whether plays are being reported to YouTube Music history."""
+        return bool(self._config.ui.report_history)
+
+    @Slot(bool)
+    def setReportHistory(self, enabled: bool) -> None:
+        """Enable/disable YT Music history reporting and persist the choice."""
+        self._config.ui.report_history = bool(enabled)
+        try:
+            self._persist_config()
+        except Exception as e:
+            log.warning("config.persist_failed", error=str(e))
+
+    def _persist_config(self) -> None:
+        """Write current config back to disk as TOML."""
+        import re
+
+        path = self._config.config_dir / "config.toml"
+        if not path.exists():
+            return
+        try:
+            text = path.read_text()
+        except OSError:
+            return
+        value = "true" if self._config.ui.report_history else "false"
+        line = f"report_history = {value}"
+        if re.search(r"^report_history\s*=", text, flags=re.MULTILINE):
+            text = re.sub(
+                r"^report_history\s*=.*$",
+                line,
+                text,
+                flags=re.MULTILINE,
+            )
+        else:
+            # Insert into the [ui] section so it round-trips through load_config.
+            ui_match = re.search(r"^\[ui\]\s*$", text, flags=re.MULTILINE)
+            if ui_match:
+                insert_at = ui_match.end()
+                text = text[:insert_at] + f"\n{line}" + text[insert_at:]
+            else:
+                text = text.rstrip() + f"\n[ui]\n{line}\n"
+        path.write_text(text)
+
     # === Internal ===
 
     def _maybe_schedule_prefetch(self, data: dict[str, Any]) -> None:

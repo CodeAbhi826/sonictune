@@ -1,57 +1,43 @@
-// components/STSlider.qml — Material 3-style slider.
+// components/STSlider.qml — Material 3-style seek slider.
+//
+// BUGFIX: previously this was a hand-rolled drag implementation that called
+// a non-existent function, so dragging a slider was a hard QML runtime
+// error and every slider was dead. Now it's a real QtQuick.Controls.Slider
+// with a styled track/handle; consumers use the standard `onMoved` signal.
 //
 // Track height 4px (radius 2px), active track in Theme.primary, inactive
-// track in surfaceContainerHigh. Handle 16px circle expanding to 20px while
+// track in Theme.outline. Handle 16px circle expanding to 20px while
 // pressed (100ms OutBack).
 
 import QtQuick
+import QtQuick.Controls
 import theme 1.0
 
-Item {
-    id: root
+Slider {
+    id: control
 
-    property real from: 0.0
-    property real to: 1.0
-    property real value: 0.0
-    property bool isActive: to > from
+    implicitHeight: 20
 
-    property real handleSize: 16
-    property real handlePressedSize: 20
-    property bool pressed: false
-
-    signal valueChanged(real value)
-    signal moved()
-
-    height: 20
-    width: 200
-
-    readonly property real _t: isActive ? (value - from) / (to - from) : 0.0
-
-    Rectangle {
-        id: trackBg
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
+    background: Rectangle {
+        x: control.leftPadding
+        y: control.topPadding + control.availableHeight / 2 - height / 2
+        width: control.availableWidth
         height: 4
         radius: 2
-        color: Theme.surfaceContainerHigh
+        color: Theme.outline
+
+        Rectangle {
+            width: control.visualPosition * parent.width
+            height: parent.height
+            radius: 2
+            color: Theme.primary
+        }
     }
 
-    Rectangle {
-        id: trackActive
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        width: trackBg.x + root._t * root.width
-        height: 4
-        radius: 2
-        color: Theme.primary
-    }
-
-    Rectangle {
-        id: handle
-        x: root._t * root.width - width / 2
-        y: (parent.height - height) / 2
-        width: root.pressed ? root.handlePressedSize : root.handleSize
+    handle: Rectangle {
+        x: control.leftPadding + control.visualPosition * (control.availableWidth - width)
+        y: control.topPadding + control.availableHeight / 2 - height / 2
+        width: control.pressed ? 20 : 16
         height: width
         radius: width / 2
         color: Theme.primary
@@ -64,21 +50,5 @@ Item {
             radius: 2
             color: Theme.onPrimary
         }
-    }
-
-    MouseArea {
-        id: mouse
-        anchors.fill: parent
-        hoverEnabled: true
-        onPressedChanged: { root.pressed = pressed; if (pressed) _setFromMouse(mouse.x) }
-        onPositionChanged: if (pressed) _setFromMouse(mouse.x)
-        onReleased: root.pressed = false
-    }
-
-    function _setFromMouse(x: real) {
-        if (!isActive) return
-        var t = Math.max(0, Math.min(1, x / width))
-        value = from + t * (to - from)
-        movedBy(value)
     }
 }
