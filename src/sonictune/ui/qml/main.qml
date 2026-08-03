@@ -101,7 +101,13 @@ ApplicationWindow {
                     }[name] || 0
                 }
 
-                HomePage { id: homePage }
+                HomePage {
+                    id: homePage
+                    onOpenSearch: function(query) {
+                        pageStack.switchTo("search")
+                        searchPage.searchFor(query)
+                    }
+                }
                 SearchPage { id: searchPage }
                 LibraryPage {
                     id: libraryPage

@@ -90,6 +90,11 @@ class MpvPlayer:
         if self._config.normalization:
             self._mpv["af"] = "lavfi=[speechnorm=e=50:r=0.0001:l=1]"
 
+        # YouTube Music stream URLs only serve correctly when the request
+        # carries a matching Referer; without it the CDN stalls/refuses and
+        # mpv sits at 0s with no audio (no error event, just silence).
+        self._mpv["referrer"] = "https://music.youtube.com/"
+
         # Crossfade (mpv af filter)
         if self._config.crossfade_seconds > 0:
             existing = self._mpv["af"] or ""

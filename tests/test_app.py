@@ -261,6 +261,39 @@ def test_proxy_set_report_history_updates_config() -> None:
     assert proxy.reportHistory() is True
 
 
+def test_normalize_search_item_maps_camelcase_to_snake() -> None:
+    """Raw ytmusicapi search hits (camelCase) map to QML snake_case keys."""
+    proxy = make_proxy()
+    raw = {
+        "resultType": "song",
+        "title": "Ordinary",
+        "videoId": "abc123",
+        "duration_seconds": 213,
+        "thumbnails": [{"url": "small.jpg"}, {"url": "big.jpg"}],
+        "artists": [{"name": "A"}, {"name": "B"}],
+        "album": {"id": "x", "name": "LP"},
+    }
+    item = proxy._normalize_search_item(raw)
+    assert item["video_id"] == "abc123"
+    assert item["title"] == "Ordinary"
+    assert item["thumbnail_url"] == "big.jpg"
+    assert item["artist"] == "A, B"
+    assert item["album"] == "LP"
+    assert item["duration_ms"] == 213000
+    assert item["resultType"] == "song"
+
+
+def test_normalize_search_item_handles_track_object() -> None:
+    """Typed Track objects (no .get) also normalize."""
+    proxy = make_proxy()
+    track = Track(video_id="v9", title="Song", artist="Artist", album="LP", duration_ms=200000)
+    item = proxy._normalize_search_item(track)
+    assert item["video_id"] == "v9"
+    assert item["title"] == "Song"
+    assert item["artist"] == "Artist"
+    assert item["duration_ms"] == 200000
+
+
 # ---- DaemonProxy: player events ----------------------------------------------
 
 

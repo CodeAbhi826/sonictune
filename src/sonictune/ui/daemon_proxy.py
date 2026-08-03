@@ -291,10 +291,45 @@ class DaemonProxy(QObject):
         async def _do():
             try:
                 results = await self._library.search(query, filter_=filter_ or None, limit=limit or 20)
-                self.searchCompleted.emit(results)
+                self.searchCompleted.emit([self._normalize_search_item(r) for r in results])
             except Exception as e:
                 self.searchError.emit(str(e))
         asyncio.create_task(_do())
+
+    @staticmethod
+    def _get(raw: Any, key: str, default: Any = "") -> Any:
+        if isinstance(raw, dict):
+            return raw.get(key, default)
+        return getattr(raw, key, default)
+
+    def _normalize_search_item(self, raw: Any) -> dict[str, Any]:
+        """Convert a raw ytmusicapi search hit (camelCase) into the snake_case
+        shape the QML components expect (same as _normalize_home)."""
+        thumbnails = self._get(raw, "thumbnails") or []
+        thumb = thumbnails[-1].get("url", "") if thumbnails else ""
+        artists = self._get(raw, "artists") or []
+        artist_name = ", ".join(a.get("name", "") for a in artists if a.get("name"))
+        album = self._get(raw, "album")
+        album_name = album.get("name", "") if isinstance(album, dict) else (album or "")
+        result_type = self._get(raw, "resultType", "song") or "song"
+        item: dict[str, Any] = {
+            "resultType": result_type,
+            "title": self._get(raw, "title") or self._get(raw, "name") or "",
+            "video_id": self._get(raw, "videoId") or self._get(raw, "video_id") or "",
+            "browse_id": self._get(raw, "browseId") or self._get(raw, "playlistId")
+            or self._get(raw, "channelId") or self._get(raw, "browse_id") or "",
+            "artist": artist_name or self._get(raw, "artist"),
+            "album": album_name,
+            "author": self._get(raw, "author"),
+            "thumbnail_url": thumb,
+            "duration_ms": int(self._get(raw, "duration_seconds", 0)) * 1000
+            or int(self._get(raw, "duration_ms", 0)),
+            "year": self._get(raw, "year", ""),
+            "item_count": self._get(raw, "itemCount", ""),
+        }
+        if result_type == "artist":
+            item["name"] = self._get(raw, "artist") or self._get(raw, "title") or ""
+        return item
 
     @Slot(str, int)
     def searchSongs(self, query: str, limit: int) -> None:

@@ -64,6 +64,19 @@ Item {
         Daemon.search(q, searchPage.activeFilter, 30)
     }
 
+    // External entry point: fill the search field and run the search. Used by
+    // main.qml when another page "opens" an album/playlist/artist.
+    function searchFor(q) {
+        searchField.text = q || ""
+        searchPage.runSearch()
+    }
+
+    function clearResults() {
+        searchField.text = ""
+        searchPage.results = []
+        searchPage.searched = false
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.spacingLg
@@ -246,9 +259,9 @@ Item {
                             spacing: Theme.spacingMd
                             AlbumCard {
                                 title: resultItem.modelData.title || ""
-                                subtitle: (resultItem.modelData.artists || []).map(function(a) { return a.name }).join(", ")
-                                thumbnailUrl: (resultItem.modelData.thumbnails && resultItem.modelData.thumbnails.length) ? resultItem.modelData.thumbnails[resultItem.modelData.thumbnails.length - 1].url : ""
-                                onClicked: Daemon.search(title, "songs", 20)
+                                subtitle: resultItem.modelData.artist || ""
+                                thumbnailUrl: resultItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(resultItem.modelData.title || "", "songs", 20)
                             }
                             Item { Layout.fillWidth: true }
                         }
@@ -258,9 +271,9 @@ Item {
                             visible: resultItem.modelData.resultType === "artist"
                             spacing: Theme.spacingMd
                             ArtistCard {
-                                name: resultItem.modelData.artist || resultItem.modelData.title || ""
-                                thumbnailUrl: (resultItem.modelData.thumbnails && resultItem.modelData.thumbnails.length) ? resultItem.modelData.thumbnails[resultItem.modelData.thumbnails.length - 1].url : ""
-                                onClicked: Daemon.search(name, "songs", 20)
+                                name: resultItem.modelData.name || resultItem.modelData.title || ""
+                                thumbnailUrl: resultItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(resultItem.modelData.name || resultItem.modelData.title || "", "songs", 20)
                             }
                             Item { Layout.fillWidth: true }
                         }
@@ -272,8 +285,8 @@ Item {
                             PlaylistCard {
                                 title: resultItem.modelData.title || ""
                                 subtitle: resultItem.modelData.author || ""
-                                thumbnailUrl: (resultItem.modelData.thumbnails && resultItem.modelData.thumbnails.length) ? resultItem.modelData.thumbnails[resultItem.modelData.thumbnails.length - 1].url : ""
-                                onClicked: Daemon.search(title, "songs", 20)
+                                thumbnailUrl: resultItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(resultItem.modelData.title || "", "songs", 20)
                             }
                             Item { Layout.fillWidth: true }
                         }

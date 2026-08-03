@@ -17,6 +17,8 @@ Item {
     property bool loading: true
     property bool loadError: false
 
+    signal openSearch(string query)
+
     readonly property var moods: [
         { label: qsTr("Feel good") },
         { label: qsTr("Sad") },
@@ -162,7 +164,7 @@ Item {
                                         if (itemCard.modelData.video_id) {
                                             Daemon.playTrack(itemCard.modelData.video_id)
                                         } else if (itemCard.modelData.browse_id) {
-                                            Daemon.search(itemCard.title, "songs", 20)
+                                            homePage.openSearch(itemCard.modelData.title || itemCard.modelData.subtitle || "")
                                         }
                                     }
                                 }
