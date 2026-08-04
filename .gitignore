@@ -87,3 +87,12 @@ qml_qmlcache.qrc
 
 # App-specific cache
 .cache/sonictune/
+
+# Node/MCP (local tooling, not part of the app)
+node_modules/
+opencode.json
+package.json
+package-lock.json
+
+# Local-only planning docs (stay on this machine)
+docs/MASTER_BLUEPRINT.md
