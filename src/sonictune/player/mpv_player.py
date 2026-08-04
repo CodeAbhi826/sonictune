@@ -12,6 +12,7 @@ just plays whatever URL it's given.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import threading
 import time
 from collections.abc import Callable
@@ -30,14 +31,16 @@ log = structlog.get_logger()
 class MpvPlayer:
     """Async wrapper around libmpv via python-mpv."""
 
-    def __init__(self, config: AudioConfig) -> None:
-        self._config = config
+    def __init__(self, config: AudioConfig | None = None) -> None:
+        self._config = config or AudioConfig()
         self._mpv: mpv.MPV | None = None
         self._state: PlayerState = PlayerState.IDLE
         self._current_track: TrackInfo = TrackInfo()
         self._position_ms: int = 0
         self._duration_ms: int = 0
         self._volume: int = 80
+        self._speed: float = 1.0
+        self._crossfade_seconds: int = 0
         self._play_started_at: float | None = None
         self._listeners: list[Callable[[PlayerEvent, dict[str, Any]], Any]] = []
         self._lock = threading.Lock()
@@ -119,10 +122,8 @@ class MpvPlayer:
     async def shutdown(self) -> None:
         if self._position_poller:
             self._position_poller.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._position_poller
-            except asyncio.CancelledError:
-                pass
 
         if self._mpv:
             await asyncio.to_thread(self._mpv.terminate)
@@ -296,6 +297,21 @@ class MpvPlayer:
         if self._mpv:
             await asyncio.to_thread(setattr, self._mpv, "volume", volume)
         await self._emit(PlayerEvent.VOLUME_CHANGED, {"volume": volume})
+
+    async def set_crossfade(self, seconds: int) -> None:
+        """Set crossfade length (clamped to 0-12s). 0 disables."""
+        self._crossfade_seconds = max(0, min(12, seconds))
+        if self._mpv:
+            if self._crossfade_seconds > 0:
+                self._mpv.af = f"lavfi=[acrossfade=d={self._crossfade_seconds}]"
+            else:
+                self._mpv.af = ""
+
+    async def set_speed(self, speed: float) -> None:
+        """Set playback speed (clamped to 0.5x-2.0x)."""
+        self._speed = max(0.5, min(2.0, speed))
+        if self._mpv:
+            self._mpv.speed = self._speed
 
     # --- Getters -----------------------------------------------------------
 

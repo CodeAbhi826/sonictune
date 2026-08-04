@@ -8,7 +8,7 @@ import os
 import signal
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import qasync
 import structlog
@@ -90,6 +90,11 @@ class SonicTuneApp:
 
         # QML-facing proxy
         self.daemon: DaemonProxy | None = None
+
+        # Phase 2 services (lazy-init via wiring)
+        self._perf_profile: Any = None
+        self._perf_flags: Any = None
+        self._mini_player: Any = None
 
     def _set_locale(self) -> None:
         """CRITICAL: libmpv requires C locale. Set via ctypes at C level."""
@@ -273,10 +278,17 @@ class SonicTuneApp:
         # Register image provider
         engine.addImageProvider("art", ArtImageProvider(self.art_cache))
 
+        # Performance flags (auto-detected, overridable from Settings)
+        from sonictune.performance import detect_performance_tier
+        self._perf_profile = detect_performance_tier()
+        from sonictune.ui.performance_flags import PerformanceFlags
+        self._perf_flags = PerformanceFlags(self._perf_profile)
+
         # Register context properties
         engine.rootContext().setContextProperty("Daemon", self.daemon)
         engine.rootContext().setContextProperty("Clipboard", ClipboardHelper())
         engine.rootContext().setContextProperty("AppVersion", __version__)
+        engine.rootContext().setContextProperty("PerformanceFlags", self._perf_flags)
 
         # Load main.qml
         main_qml = Path(__file__).parent / "ui" / "qml" / "main.qml"
@@ -288,6 +300,13 @@ class SonicTuneApp:
 
         log.info("app.qml_ready")
         self._engine = engine
+
+        # Mini player
+        from sonictune.ui.mini_player import MiniPlayerWindow
+        self._mini_player = MiniPlayerWindow(self._engine, self.daemon)
+        # Connect the QML signal to the Python mini-player toggle
+        root = self._engine.rootObjects()[0]
+        root.miniPlayerToggleRequested.connect(self._mini_player.toggle)
 
     def _setup_tray(self) -> None:
         """Set up system tray icon for minimize-to-tray."""

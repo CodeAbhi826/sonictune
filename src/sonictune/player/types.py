@@ -9,7 +9,7 @@ import enum
 from dataclasses import dataclass
 
 
-class PlayerState(str, enum.Enum):
+class PlayerState(enum.StrEnum):
     IDLE = "idle"
     LOADING = "loading"
     PLAYING = "playing"
@@ -18,7 +18,7 @@ class PlayerState(str, enum.Enum):
     ERROR = "error"
 
 
-class PlayerEvent(str, enum.Enum):
+class PlayerEvent(enum.StrEnum):
     STATE_CHANGED = "state_changed"
     TRACK_CHANGED = "track_changed"
     POSITION_CHANGED = "position_changed"

@@ -5,14 +5,17 @@
 //
 // Numbered indices render in the mono font; hovering swaps the number for
 // a play glyph. The active (currently playing) row gets a primaryContainer
-// background.
-
-pragma ComponentBehavior: Bound
+// background with a small equalizer glyph in Theme.primary. Renders
+// cleanly with an empty model (shows the empty state instead).
+//
+// Note: no `pragma ComponentBehavior: Bound` — the delegate intentionally
+// references outer IDs (`root.*`, `list.width`), and qmllint segfaults on
+// that combination.
 
 import QtQuick
-import QtQuick.Controls.Material
+import QtQuick.Controls
 import QtQuick.Layouts
-import "../theme"
+import theme 1.0
 
 Rectangle {
     id: root
@@ -23,9 +26,14 @@ Rectangle {
     property string currentVideoId: ""
     property bool showEmptyState: true
     property string emptyMessage: qsTr("Nothing here yet")
+    property string emptyIcon: "note"
+    property string emptyAction: ""
+
+    readonly property bool empty: !root.tracks || root.tracks.length === 0
 
     signal playTrack(string videoId)
     signal addToQueue(string videoId)
+    signal emptyActionClicked()
 
     ListView {
         id: list
@@ -41,40 +49,50 @@ Rectangle {
             required property int index
 
             width: list.width
-            height: 60
+            height: 56
             readonly property bool isCurrent: modelData.video_id === root.currentVideoId
             radius: Theme.radiusMd
-            color: isCurrent
+            color: row.isCurrent
                 ? Theme.primaryContainer
                 : (mouseArea.containsMouse ? Theme.surfaceContainer : "transparent")
 
-            Behavior on color { ColorAnimation { duration: Theme.durationFast } }
+            Behavior on color {
+                enabled: !Theme.reducedMotion
+                ColorAnimation { duration: Theme.durFast }
+            }
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.spacingMd
-                anchors.rightMargin: Theme.spacingMd
-                spacing: Theme.spacingSm
+                anchors.leftMargin: Theme.space4
+                anchors.rightMargin: Theme.space4
+                spacing: Theme.space2
 
-                // Numbered index (mono) -> play glyph on hover/current.
                 Item {
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 40
 
                     Text {
                         anchors.centerIn: parent
-                        visible: !mouseArea.containsMouse && !row.isCurrent
+                        visible: !row.isCurrent && !mouseArea.containsMouse
                         text: (row.index + 1) + "."
-                        color: Theme.onSurfaceMuted
+                        color: Theme.onSurfaceVariant
                         font: Theme.fontMono
                     }
 
                     Icon {
                         anchors.centerIn: parent
-                        visible: mouseArea.containsMouse || row.isCurrent
+                        visible: mouseArea.containsMouse && !row.isCurrent
                         name: "play"
                         size: 16
-                        color: row.isCurrent ? Theme.primary : Theme.onSurface
+                        color: Theme.onSurface
+                    }
+
+                    Icon {
+                        anchors.centerIn: parent
+                        visible: row.isCurrent
+                        name: "equalizer"
+                        size: 16
+                        color: Theme.primary
                     }
                 }
 
@@ -118,7 +136,7 @@ Rectangle {
                     Text {
                         Layout.fillWidth: true
                         text: row.modelData.artist + (row.modelData.album ? "  ·  " + row.modelData.album : "")
-                        color: row.isCurrent ? Theme.onSurfaceVariant : Theme.onSurfaceVariant
+                        color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
                         font: Theme.fontBodySmall
                         elide: Text.ElideRight
                     }
@@ -126,7 +144,7 @@ Rectangle {
 
                 Text {
                     text: root.formatTime(row.modelData.duration_ms || 0)
-                    color: Theme.onSurfaceMuted
+                    color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
                     font: Theme.fontMono
                     Layout.preferredWidth: 44
                     horizontalAlignment: Text.AlignRight
@@ -178,15 +196,22 @@ Rectangle {
 
     ColumnLayout {
         anchors.centerIn: parent
-        visible: root.showEmptyState && root.tracks.length === 0
-        spacing: Theme.spacingSm
+        visible: root.showEmptyState && root.empty
+        spacing: Theme.space2
 
-        Icon { Layout.alignment: Qt.AlignHCenter; name: "note"; size: 28; color: Theme.onSurfaceVariant }
+        Icon { Layout.alignment: Qt.AlignHCenter; name: root.emptyIcon; size: 28; color: Theme.onSurfaceVariant }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root.emptyMessage
             color: Theme.onSurfaceVariant
             font: Theme.fontBodyMedium
+        }
+        STButton {
+            Layout.alignment: Qt.AlignHCenter
+            visible: root.emptyAction !== ""
+            text: root.emptyAction
+            variant: "tonal"
+            onClicked: root.emptyActionClicked()
         }
     }
 

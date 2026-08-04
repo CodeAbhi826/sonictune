@@ -170,7 +170,7 @@ class LrclibClient:
                 adjusted = max(0, ts + self._offset_ms)
                 lines.append(LyricLine(time_ms=adjusted, text=text))
 
-        lines.sort(key=lambda l: l.time_ms)
+        lines.sort(key=lambda line: line.time_ms)
         return lines
 
     @staticmethod

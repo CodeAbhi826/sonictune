@@ -12,6 +12,7 @@ from typing import Any
 import structlog
 from PySide6.QtCore import QObject, Signal, Slot
 
+from sonictune.config import QUALITY_ITAG_MAP, resolve_high_quality
 from sonictune.player.queue import RepeatMode
 from sonictune.player.types import PlayerEvent, TrackInfo
 
@@ -29,6 +30,11 @@ class DaemonProxy(QObject):
     authChanged = Signal(bool)
     connectionChanged = Signal(bool)
     error = Signal(str)
+    errorOccurred = Signal(str)
+
+    # Audio quality
+    audioQualityChanged = Signal(str)
+    currentAudioItagChanged = Signal(int)
 
     # Async operation signals
     statusReceived = Signal(dict)
@@ -95,6 +101,8 @@ class DaemonProxy(QObject):
         self._url_cache: dict[str, str] = {}
         self._prefetch_task: asyncio.Task | None = None
         self._prefetch_scheduled_for: str | None = None
+        self._ytm: Any = getattr(library, "_ytm", None)
+        self._current_itag: int = 0
 
         # Wire player events to signals
         self._player.add_listener(self._on_player_event)
@@ -241,6 +249,50 @@ class DaemonProxy(QObject):
                 self.error.emit(str(e))
         asyncio.create_task(_do())
 
+    # === Audio quality ===
+
+    @Slot(result=str)
+    def audioQuality(self) -> str:
+        """Current audio quality level: 'low' | 'standard' | 'high'."""
+        return getattr(self._config.audio, "quality", "standard")
+
+    @Slot(str)
+    def setAudioQuality(self, quality: str) -> None:
+        """Set audio quality (only the 3 spec levels are accepted)."""
+        if quality not in QUALITY_ITAG_MAP:
+            return
+        self._config.audio.quality = quality
+        self._config.audio.itag = QUALITY_ITAG_MAP[quality]
+        if hasattr(self._config, "save"):
+            try:
+                self._config.save()
+            except Exception as e:
+                log.warning("config.save_failed", error=str(e))
+        self.audioQualityChanged.emit(quality)
+
+    @Slot(result=int)
+    def currentAudioItag(self) -> int:
+        """Last resolved itag for 'high' quality (0 if unset)."""
+        return self._current_itag
+
+    # === Crossfade + playback speed ===
+
+    @Slot(int)
+    def setCrossfade(self, seconds: int) -> None:
+        asyncio.create_task(self._player.set_crossfade(seconds))
+
+    @Slot(result=int)
+    def crossfade(self) -> int:
+        return getattr(self._config.audio, "crossfade_seconds", 0)
+
+    @Slot(float)
+    def setSpeed(self, speed: float) -> None:
+        asyncio.create_task(self._player.set_speed(speed))
+
+    @Slot(result=float)
+    def speed(self) -> float:
+        return getattr(self._config.audio, "speed", 1.0)
+
     @Slot(str, bool)
     def addToQueue(self, video_id: str, play_next: bool) -> None:
         async def _do():
@@ -286,15 +338,36 @@ class DaemonProxy(QObject):
 
     # === Library ===
 
-    @Slot(str, str, int)
-    def search(self, query: str, filter_: str, limit: int) -> None:
+    @Slot(str, str, int, result=list)
+    def search(self, query: str, filter_: str = "", limit: int = 20) -> list[dict]:
+        """Search YT Music with an error boundary.
+
+        Returns the normalized result list synchronously (empty on failure —
+        never raises). Also emits ``searchCompleted`` so the async UI path
+        keeps working. When the raw ytmusicapi client is unavailable, falls
+        back to the async library wrapper.
+        """
+        try:
+            if self._ytm is not None:
+                results = self._ytm.search(query, filter=filter_ or None, limit=limit or 20)
+                normalized = [self._normalize_search_item(r) for r in results]
+                self.searchCompleted.emit(normalized)
+                return normalized
+        except Exception as e:
+            log.warning("proxy.search_error", error=str(e))
+            self.errorOccurred.emit(f"Search failed: {e!s}")
+            self.searchError.emit(str(e))
+            return []
+
         async def _do():
             try:
                 results = await self._library.search(query, filter_=filter_ or None, limit=limit or 20)
                 self.searchCompleted.emit([self._normalize_search_item(r) for r in results])
             except Exception as e:
                 self.searchError.emit(str(e))
+                self.errorOccurred.emit(f"Search failed: {e!s}")
         asyncio.create_task(_do())
+        return []
 
     @staticmethod
     def _get(raw: Any, key: str, default: Any = "") -> Any:
@@ -679,13 +752,28 @@ class DaemonProxy(QObject):
 
         self._prefetch_task = asyncio.create_task(_do_prefetch())
 
+    async def _resolve_stream_for_track(self, video_id: str) -> str:
+        """Resolve the stream URL honoring the current audio quality.
+
+        For 'high' quality this auto-resolves 141 -> 774 -> 251 and emits the
+        resolved itag so the UI can show what is actually playing.
+        """
+        quality = getattr(self._config.audio, "quality", "standard")
+        if quality == "high":
+            itag = await resolve_high_quality(video_id, self._ytm)
+        else:
+            itag = QUALITY_ITAG_MAP.get(quality, getattr(self._config.audio, "itag", 0) or 250)
+        self._current_itag = itag
+        self.currentAudioItagChanged.emit(itag)
+        return await self._library.get_stream_url(video_id, itag)
+
     async def _play_track(self, track: Any) -> None:
         """Resolve stream URL and load into player."""
         try:
             if track.video_id in self._url_cache:
                 url = self._url_cache.pop(track.video_id)
             else:
-                url = await self._library.get_stream_url(track.video_id, self._config.audio.itag)
+                url = await self._resolve_stream_for_track(track.video_id)
             info = TrackInfo(
                 video_id=track.video_id,
                 title=track.title,
@@ -698,6 +786,7 @@ class DaemonProxy(QObject):
         except Exception as e:
             log.exception("proxy.play_failed", video_id=track.video_id)
             self.error.emit(str(e))
+            self.errorOccurred.emit(str(e))
 
 
 __all__ = ["DaemonProxy"]

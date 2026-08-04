@@ -1,8 +1,8 @@
-// pages/LibraryPage.qml — the signed-in user's saved songs/albums/playlists.
-
-pragma ComponentBehavior: Bound
+// pages/LibraryPage.qml — signed-in user's saved songs/albums/playlists,
+// plus a Local Files stub tab (Material 3).
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
@@ -17,13 +17,21 @@ Item {
     property bool loading: false
     property bool authenticated: false
 
+    signal navigateRequested(string pageName)
+    function pageStackSwitch(name) { navigateRequested(name) }
+
     Connections {
         target: Daemon
         function onLibrarySongsReceived(s) { libraryPage.songs = s || []; libraryPage.loading = false }
         function onLibrarySongsError(e) { libraryPage.loading = false }
-        function onLibraryAlbumsReceived(a) { libraryPage.albums = a || [] }
-        function onLibraryPlaylistsReceived(p) { libraryPage.playlists = p || [] }
-        function onAuthChanged(a) { libraryPage.authenticated = a; if (a) libraryPage.loadAll() }
+        function onLibraryAlbumsReceived(a) { libraryPage.albums = a || []; libraryPage.loading = false }
+        function onLibraryAlbumsError(e) { libraryPage.loading = false }
+        function onLibraryPlaylistsReceived(p) { libraryPage.playlists = p || []; libraryPage.loading = false }
+        function onLibraryPlaylistsError(e) { libraryPage.loading = false }
+        function onAuthChanged(a) {
+            libraryPage.authenticated = a
+            if (a) libraryPage.loadAll()
+        }
         function onSyncLibraryCompleted(r) { libraryPage.loading = false; libraryPage.loadAll() }
         function onSyncLibraryError(e) { libraryPage.loading = false }
     }
@@ -40,19 +48,28 @@ Item {
         Daemon.getLibraryPlaylists()
     }
 
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.background
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingLg
-        spacing: Theme.spacingMd
+        anchors.leftMargin: Theme.space6
+        anchors.rightMargin: Theme.space6
+        anchors.topMargin: Theme.space6
+        anchors.bottomMargin: Theme.space6
+        spacing: Theme.space4
         visible: libraryPage.authenticated
 
         RowLayout {
             Layout.fillWidth: true
             Text { text: qsTr("Library"); color: Theme.onSurface; font: Theme.fontHeadlineMedium }
             Item { Layout.fillWidth: true }
-            Button {
+            STButton {
                 text: qsTr("Sync")
-                flat: true
+                iconName: "sync"
+                variant: "tonal"
                 onClicked: { libraryPage.loading = true; Daemon.syncLibrary() }
             }
         }
@@ -61,11 +78,11 @@ Item {
             id: tabBar
             Layout.fillWidth: true
             Material.accent: Theme.primary
-            background: Rectangle { color: "transparent" }
 
             TabButton { text: qsTr("Songs (%1)").arg(libraryPage.songs.length) }
             TabButton { text: qsTr("Albums (%1)").arg(libraryPage.albums.length) }
             TabButton { text: qsTr("Playlists (%1)").arg(libraryPage.playlists.length) }
+            TabButton { text: qsTr("Local Files") }
         }
 
         StackLayout {
@@ -73,10 +90,12 @@ Item {
             Layout.fillHeight: true
             currentIndex: tabBar.currentIndex
 
+            // --- Songs ----------------------------------------------------
             ScrollView {
                 contentWidth: availableWidth
+                clip: true
                 TrackList {
-                    width: libraryPage.width - Theme.spacingLg * 2
+                    width: libraryPage.width - Theme.space6 * 2
                     tracks: libraryPage.songs
                     emptyMessage: qsTr("Your library is empty")
                     onPlayTrack: function(id) { Daemon.playTrack(id) }
@@ -84,42 +103,132 @@ Item {
                 }
             }
 
+            // --- Albums ---------------------------------------------------
             ScrollView {
                 contentWidth: availableWidth
-                Flow {
-                    width: libraryPage.width - Theme.spacingLg * 2
-                    spacing: Theme.spacingMd
-                    Repeater {
-                        model: libraryPage.albums
-                        delegate: AlbumCard {
-                            id: albumItem
-                            required property var modelData
-                            title: albumItem.modelData.title || ""
-                            subtitle: albumItem.modelData.artist || ""
-                            thumbnailUrl: albumItem.modelData.thumbnail_url || ""
-                            browseId: albumItem.modelData.browse_id || ""
-                            onClicked: Daemon.search(title, "songs", 20)
+                clip: true
+
+                ColumnLayout {
+                    width: libraryPage.width - Theme.space6 * 2
+                    spacing: Theme.space4
+
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space4
+                        visible: libraryPage.albums.length > 0
+
+                        Repeater {
+                            model: libraryPage.albums
+                            delegate: AlbumCard {
+                                id: albumItem
+                                required property var modelData
+                                title: albumItem.modelData.title || ""
+                                subtitle: albumItem.modelData.artist || ""
+                                thumbnailUrl: albumItem.modelData.thumbnail_url || ""
+                                browseId: albumItem.modelData.browse_id || ""
+                                onClicked: Daemon.search(albumItem.modelData.title || "", "songs", 20)
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.topMargin: Theme.space10
+                        spacing: Theme.space3
+                        visible: libraryPage.albums.length === 0
+
+                        Icon { Layout.alignment: Qt.AlignHCenter; name: "album"; size: 32; color: Theme.onSurfaceVariant }
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: qsTr("No albums saved yet")
+                            color: Theme.onSurface
+                            font: Theme.fontTitleMedium
+                        }
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: qsTr("Albums you save will show up here.")
+                            color: Theme.onSurfaceVariant
+                            font: Theme.fontBodySmall
                         }
                     }
                 }
             }
 
+            // --- Playlists ---------------------------------------------------
             ScrollView {
                 contentWidth: availableWidth
-                Flow {
-                    width: libraryPage.width - Theme.spacingLg * 2
-                    spacing: Theme.spacingMd
-                    Repeater {
-                        model: libraryPage.playlists
-                        delegate: PlaylistCard {
-                            id: playlistItem
-                            required property var modelData
-                            title: playlistItem.modelData.title || ""
-                            subtitle: playlistItem.modelData.owner || ""
-                            trackCount: playlistItem.modelData.track_count || 0
-                            thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
-                            onClicked: Daemon.search(title, "songs", 20)
+                clip: true
+
+                ColumnLayout {
+                    width: libraryPage.width - Theme.space6 * 2
+                    spacing: Theme.space4
+
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space4
+                        visible: libraryPage.playlists.length > 0
+
+                        Repeater {
+                            model: libraryPage.playlists
+                            delegate: PlaylistCard {
+                                id: playlistItem
+                                required property var modelData
+                                title: playlistItem.modelData.title || ""
+                                subtitle: playlistItem.modelData.owner || ""
+                                trackCount: playlistItem.modelData.track_count || 0
+                                thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(playlistItem.modelData.title || "", "songs", 20)
+                            }
                         }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.topMargin: Theme.space10
+                        spacing: Theme.space3
+                        visible: libraryPage.playlists.length === 0
+
+                        Icon { Layout.alignment: Qt.AlignHCenter; name: "queue"; size: 32; color: Theme.onSurfaceVariant }
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: qsTr("No playlists saved yet")
+                            color: Theme.onSurface
+                            font: Theme.fontTitleMedium
+                        }
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: qsTr("Playlists you save will show up here.")
+                            color: Theme.onSurfaceVariant
+                            font: Theme.fontBodySmall
+                        }
+                    }
+                }
+            }
+
+            // --- Local Files (stub) -------------------------------------------
+            Item {
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    spacing: Theme.space3
+                    width: 360
+
+                    Icon { Layout.alignment: Qt.AlignHCenter; name: "download"; size: 32; color: Theme.onSurfaceVariant }
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: qsTr("Local files coming soon")
+                        color: Theme.onSurface
+                        font: Theme.fontTitleMedium
+                    }
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        text: qsTr("Soon you'll be able to browse music stored on this device. For now, search the catalog to play anything.")
+                        color: Theme.onSurfaceVariant
+                        font: Theme.fontBodySmall
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.Wrap
                     }
                 }
             }
@@ -129,7 +238,7 @@ Item {
     ColumnLayout {
         anchors.centerIn: parent
         visible: !libraryPage.authenticated
-        spacing: Theme.spacingMd
+        spacing: Theme.space4
         width: 320
 
         Icon { Layout.alignment: Qt.AlignHCenter; name: "library"; size: 32; color: Theme.onSurfaceVariant }
@@ -148,12 +257,11 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
         }
-        Button {
+        STButton {
             Layout.alignment: Qt.AlignHCenter
             text: qsTr("Go to Settings")
-            highlighted: true
-            Material.accent: Theme.primary
-            onClicked: libraryPage.pageStackSwitch("settings")
+            variant: "filled"
+            onClicked: libraryPage.navigateRequested("settings")
         }
     }
 
@@ -161,7 +269,4 @@ Item {
         opacity: libraryPage.loading ? 1 : 0
         message: qsTr("Syncing your library…")
     }
-
-    signal navigateRequested(string pageName)
-    function pageStackSwitch(name) { navigateRequested(name) }
 }

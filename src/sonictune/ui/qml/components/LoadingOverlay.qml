@@ -1,7 +1,8 @@
 // components/LoadingOverlay.qml — full-page loading veil with a message.
+// The spinning ring is a Canvas arc; it rotates only when motion is allowed
+// (Theme.reducedMotion shows a static ring instead).
 
 import QtQuick
-import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
 
@@ -14,7 +15,10 @@ Item {
 
     property string message: qsTr("Loading…")
 
-    Behavior on opacity { NumberAnimation { duration: Theme.durationBase } }
+    Behavior on opacity {
+        enabled: !Theme.reducedMotion
+        NumberAnimation { duration: Theme.durNormal }
+    }
 
     function show(msg) {
         if (msg) message = msg
@@ -27,19 +31,56 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.alpha(Theme.background, 0.72)
+        color: Theme.background
+        opacity: 0.6
     }
 
     ColumnLayout {
         anchors.centerIn: parent
-        spacing: Theme.spacingMd
+        spacing: Theme.space4
         visible: overlay.opacity > 0
 
-        BusyIndicator {
+        Canvas {
             id: spinner
             Layout.alignment: Qt.AlignHCenter
-            running: overlay.opacity > 0
-            Material.accent: Theme.primary
+            Layout.preferredWidth: 44
+            Layout.preferredHeight: 44
+            width: 44
+            height: 44
+            renderStrategy: Canvas.Cooperative
+
+            property real sweep: Math.PI * 1.5
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.reset()
+                ctx.lineCap = "round"
+                ctx.lineWidth = 4
+                ctx.strokeStyle = Theme.primary
+                ctx.beginPath()
+                ctx.arc(width / 2, height / 2, width / 2 - 5, 0, spinner.sweep, false)
+                ctx.stroke()
+            }
+
+            Connections {
+                target: Theme
+                function onReducedMotionChanged() {
+                    spinner.sweep = Theme.reducedMotion ? Math.PI * 2 : Math.PI * 1.5
+                    spinner.requestPaint()
+                }
+            }
+
+            Component.onCompleted: {
+                spinner.sweep = Theme.reducedMotion ? Math.PI * 2 : Math.PI * 1.5
+            }
+
+            RotationAnimator on rotation {
+                from: 0
+                to: 360
+                duration: 900
+                loops: Animation.Infinite
+                running: overlay.opacity > 0 && !Theme.reducedMotion
+            }
         }
 
         Text {

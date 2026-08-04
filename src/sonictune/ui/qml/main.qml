@@ -1,3 +1,7 @@
+// main.qml — SonicTune main window (Material 3 Dark).
+// Nav rail on the left, five pages in a StackLayout, floating PlayerBar,
+// Now Playing + Queue drawers, global shortcuts and a daemon error toast.
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
@@ -17,7 +21,7 @@ ApplicationWindow {
     title: qsTr("SonicTune")
     color: Theme.background
 
-    Material.theme: Theme.materialTheme
+    Material.theme: Material.Dark
     Material.accent: Theme.primary
     Material.primary: Theme.primary
     Material.foreground: Theme.onSurface
@@ -26,9 +30,13 @@ ApplicationWindow {
     property int cachedVolume: 80
     property bool daemonConnected: Daemon.isConnected()
 
+    signal miniPlayerToggleRequested()
+
     Connections {
         target: Daemon
         function onConnectionChanged(connected) { window.daemonConnected = connected }
+        function onError(err) { appToast.show(err) }
+        function onErrorOccurred(err) { appToast.show(err) }
     }
 
     // --- Connection banner --------------------------------------------------
@@ -38,18 +46,20 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         height: window.daemonConnected ? 0 : 40
-        color: Theme.error
+        color: Theme.errorContainer
         visible: height > 0
         clip: true
-
-        Behavior on height { NumberAnimation { duration: Theme.durationBase; easing.type: Theme.easingStandard } }
+        Behavior on height {
+            enabled: !Theme.reducedMotion
+            NumberAnimation { duration: Theme.durNormal; easing.type: Easing.OutCubic }
+        }
 
         RowLayout {
             anchors.centerIn: parent
-            spacing: Theme.spacingSm
-            Icon { name: "warning"; size: 16; color: Theme.onError }
+            spacing: Theme.space2
+            Icon { name: "warning"; size: 16; color: Theme.onErrorContainer }
             Text {
-                color: Theme.onError
+                color: Theme.onErrorContainer
                 text: qsTr("Can't reach the daemon — retrying… start it with ./scripts/run-daemon.sh")
                 font: Theme.fontBodySmall
             }
@@ -123,13 +133,13 @@ ApplicationWindow {
     PlayerBar {
         id: playerBar
         anchors.left: parent.left
-        anchors.leftMargin: navRail.width + Theme.spacingMd
+        anchors.leftMargin: navRail.width + Theme.space4
         anchors.right: parent.right
-        anchors.rightMargin: Theme.spacingMd
+        anchors.rightMargin: Theme.space4
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.spacingMd
+        anchors.bottomMargin: Theme.space4
         height: 72
-        z: 10
+        z: 100
         onQueueRequested: queueDrawer.open()
         onOpenNowPlaying: nowPlayingDrawer.open()
     }
@@ -143,6 +153,7 @@ ApplicationWindow {
         interactive: false
         modal: true
         dragMargin: 0
+        z: 200
 
         background: Rectangle {
             color: Theme.background
@@ -157,8 +168,16 @@ ApplicationWindow {
 
     QueueDrawer {
         id: queueDrawer
+        z: 200
     }
 
+    ErrorToast {
+        id: appToast
+        anchors.fill: parent
+        z: 300
+    }
+
+    // --- Shortcuts (9 total) ------------------------------------------------
     Shortcut {
         sequence: "Space"
         onActivated: Daemon.playPause()
@@ -172,10 +191,6 @@ ApplicationWindow {
         onActivated: Daemon.previous()
     }
     Shortcut {
-        sequence: "Ctrl+F"
-        onActivated: pageStack.switchTo("search")
-    }
-    Shortcut {
         sequence: "Ctrl+Up"
         onActivated: Daemon.setVolume(Math.min(100, window.cachedVolume + 5))
     }
@@ -184,18 +199,34 @@ ApplicationWindow {
         onActivated: Daemon.setVolume(Math.max(0, window.cachedVolume - 5))
     }
     Shortcut {
+        sequence: "Ctrl+L"
+        onActivated: {
+            pageStack.switchTo("search")
+            searchPage.focusSearch()
+        }
+    }
+    Shortcut {
         sequence: "Ctrl+Q"
         onActivated: queueDrawer.open()
     }
     Shortcut {
-        sequence: "Escape"
-        onActivated: nowPlayingDrawer.close()
+        sequence: "Ctrl+M"
+        onActivated: window.miniPlayerToggleRequested()
+    }
+    Shortcut {
+        sequence: "Ctrl+F"
+        onActivated: pageStack.switchTo("search")
     }
 
     Connections {
         target: Daemon
         function onStatusReceived(s) {
             window.cachedVolume = s.volume || window.cachedVolume
+            if (s.track && s.track.title) {
+                window.title = qsTr("%1 · %2 — SonicTune").arg(s.track.title).arg(s.track.artist || "")
+            } else {
+                window.title = qsTr("SonicTune")
+            }
         }
         function onTrackChanged(track) {
             if (track && track.title) {

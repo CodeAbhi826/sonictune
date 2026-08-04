@@ -1,6 +1,7 @@
 """Generic in-memory LRU cache. Used for URL→path resolution."""
 from __future__ import annotations
 
+import contextlib
 from collections import OrderedDict
 from collections.abc import Callable
 from threading import Lock
@@ -41,10 +42,8 @@ class LRUCache(Generic[K, V]):
                 # Evict oldest
                 evicted_key, evicted_val = self._data.popitem(last=False)
                 if self._on_evict:
-                    try:
+                    with contextlib.suppress(Exception):
                         self._on_evict(evicted_key, evicted_val)
-                    except Exception:
-                        pass
 
     def remove(self, key: K) -> V | None:
         with self._lock:

@@ -6,6 +6,7 @@ at https://discord.com/developers/applications).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 from typing import Any
 
@@ -49,10 +50,8 @@ class DiscordRPC:
 
     async def close(self) -> None:
         if self._client:
-            try:
+            with contextlib.suppress(Exception):
                 await asyncio.to_thread(self._client.close)
-            except Exception:
-                pass
             self._client = None
             self._connected = False
             log.info("discord.closed")
@@ -106,10 +105,8 @@ class DiscordRPC:
 
     async def clear(self) -> None:
         if self._connected and self._client:
-            try:
+            with contextlib.suppress(Exception):
                 await asyncio.to_thread(self._client.clear)
-            except Exception:
-                pass
 
 
 __all__ = ["DiscordRPC"]

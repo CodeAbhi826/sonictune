@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from sonictune.config import (
+    QUALITY_ITAG_MAP,
     AudioConfig,
     CacheConfig,
     DaemonConfig,
@@ -22,7 +23,7 @@ def test_default_config_creates_file(tmp_path: Path) -> None:
     try:
         config = load_config()
         assert config_path.exists()
-        assert config.audio.quality == "opus_160"
+        assert config.audio.quality == "standard"
     finally:
         cfg_module.DEFAULT_CONFIG_DIR = original_default
 
@@ -31,38 +32,45 @@ def test_config_loads_custom_values(tmp_path: Path) -> None:
     config_file = tmp_path / "config.toml"
     config_file.write_text("""
 [audio]
-quality = "opus_160"
-normalization = false
-gapless = false
+quality = "standard"
+itag = 0
 
 [cache]
 audio_size_mb = 512
 
 [ui]
-theme = "archive"
+accent_color = "#D0BCFF"
 """)
 
     config = load_config(explicit_path=config_file)
-    assert config.audio.quality == "opus_160"
-    assert config.audio.normalization is False
-    assert config.audio.gapless is False
+    assert config.audio.quality == "standard"
+    assert config.audio.itag == 0
     assert config.cache.audio_size_mb == 512
-    assert config.ui.theme == "archive"
+    assert config.ui.accent_color == "#D0BCFF"
 
 
 def test_audio_config_itag_resolution() -> None:
     audio = AudioConfig()
-    assert audio.itag == 251  # default opus_160 (free)
+    assert audio.quality == "standard"
+    assert audio.itag == 0  # default 0 = auto-resolve handled by DaemonProxy
 
-    audio.quality = "aac_256"
-    assert audio.itag == 141
+    # itag is a separate field; DaemonProxy.setAudioQuality updates both
+    audio.quality = "low"
+    audio.itag = QUALITY_ITAG_MAP["low"]
+    assert audio.itag == QUALITY_ITAG_MAP["low"]  # 249
 
-    audio.quality = "aac_128"
-    assert audio.itag == 140
+    audio.quality = "standard"
+    audio.itag = QUALITY_ITAG_MAP["standard"]
+    assert audio.itag == QUALITY_ITAG_MAP["standard"]  # 250
 
-    # Unknown quality falls back to opus_160
+    audio.quality = "high"
+    audio.itag = QUALITY_ITAG_MAP["high"]
+    assert audio.itag == QUALITY_ITAG_MAP["high"]  # 0 = auto-resolve
+
+    # Unknown quality falls back to standard
     audio.quality = "unknown"
-    assert audio.itag == 251
+    audio.itag = 0
+    assert audio.itag == 0
 
 
 def test_cache_config_dirs() -> None:
@@ -100,23 +108,26 @@ def test_config_missing_file_creates_default(tmp_path: Path) -> None:
     try:
         config = load_config()
         assert (target / "config.toml").exists()
-        assert config.audio.quality == "opus_160"
-        assert AudioConfig().itag == 251
+        assert config.audio.quality == "standard"
+        assert AudioConfig().itag == 0
     finally:
         cfg_module.DEFAULT_CONFIG_DIR = original
 
 
 def test_audio_config_custom_itag_resolution() -> None:
-    """The itag property resolves from the configured quality string."""
+    """The itag field can be explicitly set; QUALITY_ITAG_MAP provides defaults."""
     audio = AudioConfig()
-    audio.quality = "aac_256"
-    assert audio.itag == 141
-    audio.quality = "opus_160"
-    assert audio.itag == 251
-    audio.quality = "aac_128"
-    assert audio.itag == 140
+    audio.quality = "standard"
+    audio.itag = QUALITY_ITAG_MAP["standard"]
+    assert audio.itag == QUALITY_ITAG_MAP["standard"]
+    audio.quality = "low"
+    audio.itag = QUALITY_ITAG_MAP["low"]
+    assert audio.itag == QUALITY_ITAG_MAP["low"]
+    audio.quality = "high"
+    audio.itag = QUALITY_ITAG_MAP["high"]
+    assert audio.itag == QUALITY_ITAG_MAP["high"]
 
 
 def test_audio_config_quality_unknown_falls_back() -> None:
     audio = AudioConfig(quality="bogus")
-    assert audio.itag == 251  # opus_160 fallback
+    assert audio.itag == 0  # auto-resolve fallback

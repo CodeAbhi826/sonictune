@@ -1,4 +1,6 @@
-// components/OAuthDialog.qml — YouTube Music sign-in via device OAuth.
+// components/OAuthDialog.qml — YouTube Music sign-in via device OAuth
+// (Material 3 Dark). Copies the verification URL via the Clipboard context
+// property and opens it in the system browser with Qt.openUrlExternally.
 //
 // Note on the font-group pitfall from the project's own bug history: never
 // bind the `font` group property (`font: Theme.fontXxx`) and then also set
@@ -9,6 +11,7 @@
 // both on one element.
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
@@ -92,8 +95,8 @@ Dialog {
         // --- Header --------------------------------------------------------
         RowLayout {
             Layout.fillWidth: true
-            Layout.margins: Theme.spacingLg
-            Layout.bottomMargin: Theme.spacingSm
+            Layout.margins: Theme.space6
+            Layout.bottomMargin: Theme.space2
 
             ColumnLayout {
                 Layout.fillWidth: true
@@ -114,30 +117,26 @@ Dialog {
 
         ColumnLayout {
             Layout.fillWidth: true
-            Layout.margins: Theme.spacingLg
-            spacing: Theme.spacingMd
+            Layout.margins: Theme.space6
+            spacing: Theme.space4
 
             // --- Step 1: credentials, hidden once we have a user code ------
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingSm
+                spacing: Theme.space2
                 visible: !dialog.userCode
 
-                RowLayout {
+                Text {
                     Layout.fillWidth: true
-                    spacing: Theme.spacingXs
-                    Text {
-                        Layout.fillWidth: true
-                        text: qsTr("You'll need a free YouTube Data API OAuth client (client ID + secret) from Google Cloud Console — the same one-time setup any YTMusic OAuth tool needs.")
-                        color: Theme.onSurfaceVariant
-                        font: Theme.fontBodySmall
-                        wrapMode: Text.Wrap
-                    }
+                    text: qsTr("You'll need a free YouTube Data API OAuth client (client ID + secret) from Google Cloud Console — the same one-time setup any YTMusic OAuth tool needs.")
+                    color: Theme.onSurfaceVariant
+                    font: Theme.fontBodySmall
+                    wrapMode: Text.Wrap
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.spacingXs
+                    spacing: Theme.space1
                     Icon { name: "external"; size: 13; color: Theme.primary }
                     Text {
                         text: qsTr("console.cloud.google.com → create OAuth client (TVs and Limited Input devices)")
@@ -165,13 +164,12 @@ Dialog {
                     Material.accent: Theme.primary
                 }
 
-                Button {
-                    Layout.fillWidth: true
-                    Layout.topMargin: Theme.spacingXs
+                STButton {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: Theme.space1
+                    variant: "filled"
                     text: qsTr("Continue")
                     enabled: clientIdField.text.length > 0 && clientSecretField.text.length > 0
-                    highlighted: true
-                    Material.accent: Theme.primary
                     onClicked: {
                         dialog.isError = false
                         dialog.statusMessage = qsTr("Starting sign-in…")
@@ -183,7 +181,7 @@ Dialog {
             // --- Step 2: device code ----------------------------------------
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingSm
+                spacing: Theme.space2
                 visible: dialog.userCode !== ""
 
                 Text {
@@ -215,7 +213,25 @@ Dialog {
 
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
-                    spacing: Theme.spacingSm
+                    spacing: Theme.space3
+
+                    STButton {
+                        variant: "outlined"
+                        iconName: "external"
+                        text: qsTr("Open in browser")
+                        onClicked: Qt.openUrlExternally(dialog.verificationUrl)
+                    }
+
+                    STButton {
+                        variant: "text"
+                        text: qsTr("Copy code")
+                        onClicked: Clipboard.copy(dialog.userCode)
+                    }
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: Theme.space2
                     visible: dialog.polling
                     BusyIndicator { implicitWidth: 18; implicitHeight: 18; running: dialog.polling; Material.accent: Theme.primary }
                     Text { text: dialog.statusMessage; color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
@@ -231,7 +247,7 @@ Dialog {
                 wrapMode: Text.Wrap
             }
 
-            Item { Layout.preferredHeight: Theme.spacingSm }
+            Item { Layout.preferredHeight: Theme.space2 }
         }
     }
 }

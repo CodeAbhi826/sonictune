@@ -1,13 +1,10 @@
-// components/STSlider.qml — Material 3-style seek slider.
+// components/STSlider.qml — Material 3-style seek slider built on a real
+// QtQuick.Controls.Slider. `from`, `to`, `value`, `live` and `snapMode` are
+// the native Slider properties; `valueChanged` / `moved` work normally.
 //
-// BUGFIX: previously this was a hand-rolled drag implementation that called
-// a non-existent function, so dragging a slider was a hard QML runtime
-// error and every slider was dead. Now it's a real QtQuick.Controls.Slider
-// with a styled track/handle; consumers use the standard `onMoved` signal.
-//
-// Track height 4px (radius 2px), active track in Theme.primary, inactive
-// track in Theme.outline. Handle 16px circle expanding to 20px while
-// pressed (100ms OutBack).
+// Track height 4px (radius 2px), filled track in Theme.primary, unfilled in
+// Theme.playerProgressBg. Handle 16px circle expanding to 20px while
+// pressed (OutBack easing, gated on reducedMotion). Touch target >= 32px.
 
 import QtQuick
 import QtQuick.Controls
@@ -16,7 +13,7 @@ import theme 1.0
 Slider {
     id: control
 
-    implicitHeight: 20
+    implicitHeight: 32
 
     background: Rectangle {
         x: control.leftPadding
@@ -24,7 +21,7 @@ Slider {
         width: control.availableWidth
         height: 4
         radius: 2
-        color: Theme.outline
+        color: Theme.playerProgressBg
 
         Rectangle {
             width: control.visualPosition * parent.width
@@ -41,7 +38,11 @@ Slider {
         height: width
         radius: width / 2
         color: Theme.primary
-        Behavior on width { NumberAnimation { duration: Theme.durationFast; easing.type: Easing.OutBack } }
+
+        Behavior on width {
+            enabled: !Theme.reducedMotion
+            NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutBack }
+        }
 
         Rectangle {
             anchors.centerIn: parent

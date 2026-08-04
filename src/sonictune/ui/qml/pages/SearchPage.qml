@@ -1,11 +1,8 @@
-// pages/SearchPage.qml — search with debounce, filter chips, and results.
-// BUGFIX: searches now debounce 300ms after typing stops (was search-on-Enter
-// only), so results appear as you type.
-
-pragma ComponentBehavior: Bound
+// pages/SearchPage.qml — search with debounce, filter chips, recent
+// searches, and TrackList results (Material 3).
 
 import QtQuick
-import QtQuick.Controls.Material
+import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
 import "../components"
@@ -18,6 +15,8 @@ Item {
     property string activeFilter: ""
     property bool loading: false
     property bool searched: false
+    property bool searchFailed: false
+    property string searchErrorMessage: ""
 
     readonly property var filters: [
         { key: "", label: qsTr("All") },
@@ -29,20 +28,33 @@ Item {
 
     property string lastQuery: ""
 
+    readonly property var songResults: searchPage.results.filter(function (r) {
+        return r.resultType !== "album" && r.resultType !== "artist" && r.resultType !== "playlist"
+    })
+    readonly property var albumResults: searchPage.results.filter(function (r) { return r.resultType === "album" })
+    readonly property var artistResults: searchPage.results.filter(function (r) { return r.resultType === "artist" })
+    readonly property var playlistResults: searchPage.results.filter(function (r) { return r.resultType === "playlist" })
+
     Connections {
         target: Daemon
         function onSearchCompleted(r) {
             searchPage.results = r || []
             searchPage.loading = false
+            searchPage.searchFailed = false
             if (searchPage.lastQuery) {
                 Daemon.recordSearch(searchPage.lastQuery, (r || []).length)
             }
         }
         function onSearchError(err) {
             searchPage.loading = false
+            searchPage.searchFailed = true
+            searchPage.searchErrorMessage = err || ""
         }
         function onSearchHistoryReceived(h) {
             searchPage.recentSearches = h || []
+        }
+        function onSearchHistoryError(err) {
+            searchPage.recentSearches = []
         }
     }
 
@@ -55,55 +67,48 @@ Item {
         onTriggered: searchPage.runSearch()
     }
 
-    function runSearch() {
-        var q = searchField.text.trim()
-        if (!q) return
-        searchPage.loading = true
-        searchPage.searched = true
-        searchPage.lastQuery = q
-        Daemon.search(q, searchPage.activeFilter, 30)
-    }
-
-    // External entry point: fill the search field and run the search. Used by
-    // main.qml when another page "opens" an album/playlist/artist.
-    function searchFor(q) {
-        searchField.text = q || ""
-        searchPage.runSearch()
-    }
-
-    function clearResults() {
-        searchField.text = ""
-        searchPage.results = []
-        searchPage.searched = false
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.background
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingLg
-        spacing: Theme.spacingMd
+        anchors.leftMargin: Theme.space6
+        anchors.rightMargin: Theme.space6
+        anchors.topMargin: Theme.space6
+        anchors.bottomMargin: Theme.space6
+        spacing: Theme.space4
 
-        Text { text: qsTr("Search"); color: Theme.onSurface; font: Theme.fontHeadlineMedium }
+        Text {
+            text: qsTr("Search")
+            color: Theme.onSurface
+            font: Theme.fontHeadlineMedium
+        }
 
+        // --- Search bar ------------------------------------------------------
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 48
-            radius: Theme.radiusMd
-            color: Theme.surface
-            border.color: searchField.activeFocus ? Theme.primary : Theme.outline
+            radius: Theme.radiusFull
+            color: Theme.surfaceContainerHigh
             border.width: 1
+            border.color: searchField.activeFocus ? Theme.primary : Theme.outline
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.spacingMd
-                anchors.rightMargin: Theme.spacingSm
-                spacing: Theme.spacingSm
+                anchors.leftMargin: Theme.space4
+                anchors.rightMargin: Theme.space3
+                spacing: Theme.space2
 
                 Icon { name: "search"; size: 18; color: Theme.onSurfaceVariant }
 
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     placeholderText: qsTr("Search songs, albums, artists, playlists…")
+                    placeholderTextColor: Theme.onSurfaceVariant
                     background: Item {}
                     color: Theme.onSurface
                     selectionColor: Theme.primaryContainer
@@ -112,52 +117,48 @@ Item {
                         if (searchField.text.trim() === "") {
                             searchPage.results = []
                             searchPage.searched = false
+                            searchPage.searchFailed = false
                         }
                     }
                     onAccepted: { debounce.stop(); searchPage.runSearch() }
                 }
 
-                Item {
-                    Layout.preferredWidth: 26
-                    Layout.preferredHeight: 26
+                IconButton {
+                    icon: "close"
+                    diameter: 28
+                    iconSize: 14
                     visible: searchField.text.length > 0
-                    Icon { anchors.centerIn: parent; name: "close"; size: 14; color: Theme.onSurfaceVariant }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            searchField.text = ""
-                            debounce.stop()
-                            searchPage.results = []
-                            searchPage.searched = false
-                        }
-                    }
+                    onClicked: searchPage.clearResults()
                 }
             }
         }
 
+        // --- Filter chips -------------------------------------------------------
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingSm
+            spacing: Theme.space2
 
             Repeater {
                 model: searchPage.filters
                 delegate: Rectangle {
                     id: filterChip
                     required property var modelData
-                    readonly property bool active: searchPage.activeFilter === modelData.key
+
+                    readonly property bool active: searchPage.activeFilter === filterChip.modelData.key
+
                     Layout.preferredHeight: 36
-                    Layout.preferredWidth: filterLabel.implicitWidth + Theme.spacingLg
+                    Layout.preferredWidth: filterLabel.implicitWidth + Theme.space6
                     radius: Theme.radiusFull
-                    color: filterChip.active ? Theme.primaryContainer : Theme.surface
+                    color: filterChip.active ? Theme.primaryContainer : Theme.surfaceContainer
                     border.color: filterChip.active ? Theme.primary : Theme.outline
                     border.width: 1
+                    Behavior on color { enabled: !Theme.reducedMotion; ColorAnimation { duration: Theme.durFast } }
 
                     Text {
                         id: filterLabel
                         anchors.centerIn: parent
                         text: filterChip.modelData.label
-                        color: filterChip.active ? Theme.primary : Theme.onSurfaceVariant
+                        color: filterChip.active ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
                         font: Theme.fontLabelLarge
                     }
 
@@ -175,34 +176,39 @@ Item {
             Item { Layout.fillWidth: true }
         }
 
-        // --- Recent searches, shown before any results ------------------
+        // --- Recent searches (before anything is searched) ----------------------
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingXs
+            spacing: Theme.space2
             visible: !searchPage.searched && searchPage.recentSearches.length > 0
 
-            Text { text: qsTr("Recent searches"); color: Theme.onSurfaceVariant; font: Theme.fontLabelSmall }
+            Text {
+                text: qsTr("Recent searches")
+                color: Theme.onSurfaceVariant
+                font: Theme.fontLabelMedium
+            }
 
             Flow {
                 Layout.fillWidth: true
-                spacing: Theme.spacingSm
+                spacing: Theme.space2
 
                 Repeater {
                     model: searchPage.recentSearches
                     delegate: Rectangle {
                         id: recentChip
                         required property var modelData
+
                         radius: Theme.radiusFull
-                        color: Theme.surface
+                        color: Theme.surfaceContainer
                         border.width: 1
                         border.color: Theme.outline
-                        height: 36
-                        width: recentLabel.implicitWidth + Theme.spacingLg
+                        Layout.preferredHeight: 36
+                        Layout.preferredWidth: recentLabel.implicitWidth + Theme.space6
 
                         RowLayout {
                             anchors.centerIn: parent
-                            spacing: 6
-                            Icon { name: "clock"; size: 12; color: Theme.onSurfaceVariant }
+                            spacing: Theme.space2
+                            Icon { name: "clock"; size: 13; color: Theme.onSurfaceVariant }
                             Text {
                                 id: recentLabel
                                 text: recentChip.modelData.query || ""
@@ -224,97 +230,207 @@ Item {
             }
         }
 
+        // --- Results ----------------------------------------------------------
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: availableWidth
-            visible: searchPage.searched && !searchPage.loading
+            clip: true
+            visible: searchPage.searched && !searchPage.loading && !searchPage.searchFailed
 
             ColumnLayout {
-                width: searchPage.width - Theme.spacingLg * 2
-                spacing: Theme.spacingSm
+                width: searchPage.width - Theme.space6 * 2
+                spacing: Theme.space6
 
-                Repeater {
-                    model: searchPage.results
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    visible: searchPage.songResults.length > 0
 
-                    delegate: Item {
-                        id: resultItem
-                        required property var modelData
-
+                    Text { text: qsTr("Songs"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    TrackList {
                         Layout.fillWidth: true
-                        readonly property bool isTrack: modelData.resultType !== "album" && modelData.resultType !== "artist" && modelData.resultType !== "playlist"
-                        Layout.preferredHeight: resultItem.isTrack ? 60 : 96
+                        tracks: searchPage.songResults
+                        emptyMessage: qsTr("No songs found")
+                        onPlayTrack: function(id) { Daemon.playTrack(id) }
+                        onAddToQueue: function(id) { Daemon.addToQueue(id, false) }
+                    }
+                }
 
-                        TrackList {
-                            anchors.fill: parent
-                            visible: resultItem.isTrack
-                            tracks: resultItem.isTrack ? [resultItem.modelData] : []
-                            onPlayTrack: function(id) { Daemon.playTrack(id) }
-                            onAddToQueue: function(id) { Daemon.addToQueue(id, false) }
-                        }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    visible: searchPage.albumResults.length > 0
 
-                        RowLayout {
-                            anchors.fill: parent
-                            visible: resultItem.modelData.resultType === "album"
-                            spacing: Theme.spacingMd
-                            AlbumCard {
-                                title: resultItem.modelData.title || ""
-                                subtitle: resultItem.modelData.artist || ""
-                                thumbnailUrl: resultItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(resultItem.modelData.title || "", "songs", 20)
+                    Text { text: qsTr("Albums"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space4
+                        Repeater {
+                            model: searchPage.albumResults
+                            delegate: AlbumCard {
+                                id: albumItem
+                                required property var modelData
+                                title: albumItem.modelData.title || ""
+                                subtitle: albumItem.modelData.artist || albumItem.modelData.author || ""
+                                thumbnailUrl: albumItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(albumItem.modelData.title || "", "songs", 20)
                             }
-                            Item { Layout.fillWidth: true }
-                        }
-
-                        RowLayout {
-                            anchors.fill: parent
-                            visible: resultItem.modelData.resultType === "artist"
-                            spacing: Theme.spacingMd
-                            ArtistCard {
-                                name: resultItem.modelData.name || resultItem.modelData.title || ""
-                                thumbnailUrl: resultItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(resultItem.modelData.name || resultItem.modelData.title || "", "songs", 20)
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
-
-                        RowLayout {
-                            anchors.fill: parent
-                            visible: resultItem.modelData.resultType === "playlist"
-                            spacing: Theme.spacingMd
-                            PlaylistCard {
-                                title: resultItem.modelData.title || ""
-                                subtitle: resultItem.modelData.author || ""
-                                thumbnailUrl: resultItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(resultItem.modelData.title || "", "songs", 20)
-                            }
-                            Item { Layout.fillWidth: true }
                         }
                     }
                 }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    visible: searchPage.artistResults.length > 0
+
+                    Text { text: qsTr("Artists"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space4
+                        Repeater {
+                            model: searchPage.artistResults
+                            delegate: ArtistCard {
+                                id: artistItem
+                                required property var modelData
+                                name: artistItem.modelData.name || artistItem.modelData.title || ""
+                                thumbnailUrl: artistItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(artistItem.modelData.name || artistItem.modelData.title || "", "songs", 20)
+                            }
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    visible: searchPage.playlistResults.length > 0
+
+                    Text { text: qsTr("Playlists"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space4
+                        Repeater {
+                            model: searchPage.playlistResults
+                            delegate: PlaylistCard {
+                                id: playlistItem
+                                required property var modelData
+                                title: playlistItem.modelData.title || ""
+                                subtitle: playlistItem.modelData.author || ""
+                                thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
+                                onClicked: Daemon.search(playlistItem.modelData.title || "", "songs", 20)
+                            }
+                        }
+                    }
+                }
+
+                Item { Layout.preferredHeight: Theme.space4 }
             }
         }
 
+        // --- Empty state -------------------------------------------------------
         ColumnLayout {
             Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: Theme.spacingXxl
-            visible: searchPage.searched && !searchPage.loading && searchPage.results.length === 0
-            spacing: Theme.spacingSm
+            Layout.topMargin: Theme.space10
+            visible: searchPage.searched && !searchPage.loading && !searchPage.searchFailed && searchPage.results.length === 0
+            spacing: Theme.space3
+            width: 320
 
-            Icon { Layout.alignment: Qt.AlignHCenter; name: "search"; size: 28; color: Theme.onSurfaceVariant }
+            Icon { Layout.alignment: Qt.AlignHCenter; name: "search"; size: 32; color: Theme.onSurfaceVariant }
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: qsTr("No results found")
+                Layout.fillWidth: true
+                text: qsTr("No results for \"%1\"").arg(searchPage.lastQuery)
+                color: Theme.onSurface
+                font: Theme.fontTitleMedium
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+            }
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTr("Try a different search, or browse the home feed.")
                 color: Theme.onSurfaceVariant
-                font: Theme.fontBodyMedium
+                font: Theme.fontBodySmall
+                horizontalAlignment: Text.AlignHCenter
             }
         }
 
-        Item { Layout.fillHeight: !searchPage.searched }
+        // --- Error state -------------------------------------------------------
+        ColumnLayout {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: Theme.space10
+            visible: searchPage.searchFailed && !searchPage.loading
+            spacing: Theme.space3
+            width: 320
+
+            Icon { Layout.alignment: Qt.AlignHCenter; name: "warning"; size: 32; color: Theme.onSurfaceVariant }
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                text: qsTr("Search failed")
+                color: Theme.onSurface
+                font: Theme.fontTitleMedium
+                horizontalAlignment: Text.AlignHCenter
+            }
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                text: searchPage.searchErrorMessage
+                color: Theme.onSurfaceVariant
+                font: Theme.fontBodySmall
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+            }
+            STButton {
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTr("Try again")
+                variant: "tonal"
+                onClicked: searchPage.runSearch()
+            }
+        }
+
+        Item { Layout.fillHeight: true }
     }
 
     LoadingOverlay {
         opacity: searchPage.loading ? 1 : 0
         message: qsTr("Searching…")
+    }
+
+    function runSearch() {
+        var q = searchField.text.trim()
+        if (!q) return
+        searchPage.loading = true
+        searchPage.searched = true
+        searchPage.searchFailed = false
+        searchPage.lastQuery = q
+        Daemon.search(q, searchPage.activeFilter, 20)
+    }
+
+    function searchFor(q) {
+        searchField.text = q || ""
+        searchPage.runSearch()
+    }
+
+    function focusSearch() {
+        pageFocusTimer.restart()
+    }
+
+    Timer {
+        id: pageFocusTimer
+        interval: 50
+        onTriggered: {
+            searchField.forceActiveFocus()
+            searchField.selectAll()
+        }
+    }
+
+    function clearResults() {
+        searchField.text = ""
+        debounce.stop()
+        searchPage.results = []
+        searchPage.searched = false
+        searchPage.searchFailed = false
     }
 }

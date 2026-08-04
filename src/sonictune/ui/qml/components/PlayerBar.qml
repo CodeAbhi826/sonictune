@@ -1,10 +1,9 @@
-// components/PlayerBar.qml — floating bottom player bar (ArchiveTune style).
-// Rounded 16px corners, 2px mini seek bar along the top edge, album art +
-// track info on the left (click opens Now Playing), transport in the
-// center, volume + queue on the right.
+// components/PlayerBar.qml — floating bottom player bar (Material 3 Dark).
+// Rounded 16px corners, 1px border, album art + track info on the left
+// (click opens Now Playing), title/artist + seek row in the middle, and
+// transport + volume + queue on the right.
 
 import QtQuick
-import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
 
@@ -13,7 +12,7 @@ Rectangle {
     radius: Theme.radiusLg
     color: Theme.playerBarBg
     border.width: 1
-    border.color: Theme.outline
+    border.color: Theme.playerBarBorder
     clip: true
 
     signal queueRequested()
@@ -51,76 +50,63 @@ Rectangle {
 
     Component.onCompleted: Daemon.getStatus()
 
-    // --- Mini seek bar at the top (2px) --------------------------------
-    Rectangle {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        width: parent.width * (playerBar.durationMs > 0 ? playerBar.positionMs / playerBar.durationMs : 0)
-        height: 2
-        color: Theme.primary
-        Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+    // --- Helpers ------------------------------------------------------
+    function trackField(t, camel, snake) {
+        if (!t) return ""
+        if (t[camel] !== undefined) return t[camel]
+        if (t[snake] !== undefined) return t[snake]
+        return ""
+    }
+
+    readonly property string thumbUrl: playerBar.trackField(playerBar.currentTrack, "thumbnailUrl", "thumbnail_url")
+
+    function artSource() {
+        return playerBar.thumbUrl ? "image://art/" + encodeURIComponent(playerBar.thumbUrl) : ""
+    }
+
+    function formatTime(ms) {
+        return Theme.formatDurationShort(ms)
+    }
+
+    function volumeIconName() {
+        var v = playerBar.status.volume === undefined ? 80 : playerBar.status.volume
+        if (v === 0) return "volumeMute"
+        if (v < 33) return "volumeLow"
+        if (v < 66) return "volumeMed"
+        return "volumeHigh"
     }
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Theme.spacingMd
-        anchors.rightMargin: Theme.spacingMd
-        spacing: Theme.spacingLg
+        anchors.leftMargin: Theme.space3
+        anchors.rightMargin: Theme.space3
+        spacing: Theme.space3
 
-        // --- Track info (click to open Now Playing) -------------------
+        // --- Album art (click opens Now Playing) ----------------------
         Item {
-            Layout.preferredWidth: 260
-            Layout.maximumWidth: 300
-            Layout.fillHeight: true
+            Layout.preferredWidth: 48
+            Layout.preferredHeight: 48
+            Layout.alignment: Qt.AlignVCenter
 
-            RowLayout {
+            Rectangle {
                 anchors.fill: parent
-                spacing: Theme.spacingSm
+                radius: Theme.radiusMd
+                color: Theme.surfaceContainer
+                clip: true
 
-                Rectangle {
-                    Layout.preferredWidth: 56
-                    Layout.preferredHeight: 56
-                    radius: Theme.radiusSm
-                    color: Theme.surfaceContainer
-                    clip: true
-
-                    Image {
-                        anchors.fill: parent
-                        source: playerBar.currentTrack.thumbnail_url
-                            ? "image://art/" + encodeURIComponent(playerBar.currentTrack.thumbnail_url)
-                            : ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                    }
-
-                    Icon {
-                        anchors.centerIn: parent
-                        visible: !playerBar.currentTrack.thumbnail_url
-                        name: "note"
-                        size: 20
-                        color: Theme.onSurfaceVariant
-                    }
+                Image {
+                    anchors.fill: parent
+                    source: playerBar.artSource()
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
                 }
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 1
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: playerBar.currentTrack.title || qsTr("Nothing playing")
-                        color: Theme.onSurface
-                        font: Theme.fontTitleMedium
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: playerBar.currentTrack.artist || qsTr("Pick something in Search or your Library")
-                        color: Theme.onSurfaceVariant
-                        font: Theme.fontBodySmall
-                        elide: Text.ElideRight
-                    }
+                Icon {
+                    anchors.centerIn: parent
+                    visible: playerBar.thumbUrl === ""
+                    name: "musicNote"
+                    size: 20
+                    color: Theme.onSurfaceVariant
                 }
             }
 
@@ -131,116 +117,152 @@ Rectangle {
             }
         }
 
-        // --- Transport ------------------------------------------------
+        // --- Title / artist + seek row --------------------------------
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 1
+
+            Text {
+                Layout.fillWidth: true
+                text: playerBar.currentTrack.title || qsTr("Nothing playing")
+                color: Theme.onSurface
+                font: Theme.fontTitleMedium
+                elide: Text.ElideRight
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: playerBar.currentTrack.artist || qsTr("Pick something to play")
+                color: Theme.onSurfaceVariant
+                font: Theme.fontBodySmall
+                elide: Text.ElideRight
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                STSlider {
+                    id: seekSlider
+                    Layout.fillWidth: true
+                    from: 0
+                    to: Math.max(1, playerBar.durationMs)
+                    value: Math.min(playerBar.positionMs, playerBar.durationMs)
+                    onMoved: Daemon.seek(value)
+                }
+
+                Text {
+                    text: Theme.formatDurationShort(playerBar.positionMs)
+                    color: Theme.onSurfaceVariant
+                    font: Theme.fontMono
+                }
+
+                Text {
+                    text: "/" + Theme.formatDuration(playerBar.durationMs)
+                    color: Theme.onSurfaceVariant
+                    font: Theme.fontMono
+                }
+            }
+        }
+
+        // --- Transport + volume + queue -------------------------------
         RowLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: Theme.spacingSm
+            Layout.alignment: Qt.AlignVCenter
+            spacing: Theme.space2
 
             IconButton {
-                icon: playerBar.isPlaying ? "pause" : "play"
-                diameter: 48
-                iconSize: 22
-                prominent: true
-                onClicked: Daemon.playPause()
+                iconName: "shuffle"
+                iconSize: 18
+                toolTip: qsTr("Shuffle")
+                checkable: true
+                checked: playerBar.status.shuffle === true
+                onClicked: Daemon.setShuffle(!playerBar.status.shuffle)
             }
+
             IconButton {
-                icon: "previous"
-                diameter: 32
-                iconSize: 16
+                iconName: "previous"
+                iconSize: 20
+                toolTip: qsTr("Previous")
                 onClicked: Daemon.previous()
             }
+
+            Rectangle {
+                width: 40
+                height: 40
+                radius: width / 2
+                color: Theme.primary
+                scale: playArea.pressed ? 0.94 : 1.0
+                Behavior on scale {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
+                }
+
+                Icon {
+                    anchors.centerIn: parent
+                    name: playerBar.isPlaying ? "pause" : "play"
+                    size: 22
+                    color: Theme.onPrimary
+                }
+
+                MouseArea {
+                    id: playArea
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Daemon.playPause()
+                }
+            }
+
             IconButton {
-                icon: "next"
-                diameter: 32
-                iconSize: 16
+                iconName: "next"
+                iconSize: 20
+                toolTip: qsTr("Next")
                 onClicked: Daemon.next()
             }
-        }
 
-        // --- Seek time (center, hidden on narrow windows) ---------------
-        Item { Layout.fillWidth: true }
-
-        RowLayout {
-            spacing: Theme.spacingSm
-            Text {
-                text: playerBar.formatTime(playerBar.positionMs)
-                color: Theme.onSurfaceMuted
-                font: Theme.fontMono
-            }
-            Text {
-                text: " / " + playerBar.formatTime(playerBar.durationMs)
-                color: Theme.onSurfaceMuted
-                font: Theme.fontMono
-            }
-        }
-
-        // --- Volume + queue ----------------------------------------------
-        RowLayout {
-            Layout.preferredWidth: 190
-            spacing: Theme.spacingSm
-
-            Icon {
-                name: playerBar.volumeIconName()
-                size: 16
-                color: Theme.onSurfaceVariant
-            }
-
-            Slider {
-                id: volumeSlider
-                Layout.preferredWidth: 90
-                from: 0
-                to: 100
-                value: playerBar.status.volume || 80
-                onMoved: Daemon.setVolume(Math.floor(value))
-
-                background: Rectangle {
-                    x: volumeSlider.leftPadding
-                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                    width: volumeSlider.availableWidth
-                    height: 3
-                    radius: 1.5
-                    color: Theme.outlineStrong
-
-                    Rectangle {
-                        width: volumeSlider.visualPosition * parent.width
-                        height: parent.height
-                        radius: parent.radius
-                        color: Theme.primary
-                    }
-                }
-
-                handle: Rectangle {
-                    x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
-                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                    width: 10
-                    height: 10
-                    radius: 5
-                    color: Theme.onSurface
+            IconButton {
+                property string mode: playerBar.status.repeat || "off"
+                iconName: mode === "one" ? "repeatOne" : "repeat"
+                iconSize: 18
+                toolTip: qsTr("Repeat")
+                checkable: true
+                checked: mode !== "off"
+                onClicked: {
+                    var next = mode === "off" ? "all" : mode === "all" ? "one" : "off"
+                    Daemon.setRepeat(next)
                 }
             }
 
             IconButton {
-                icon: "queue"
-                diameter: 34
-                iconSize: 15
+                iconName: playerBar.volumeIconName()
+                iconSize: 18
+                toolTip: qsTr("Volume")
+                onClicked: volumeSliderBox.visible = !volumeSliderBox.visible
+            }
+
+            STSlider {
+                id: volumeSliderBox
+                Layout.preferredWidth: 80
+                visible: false
+                from: 0
+                to: 100
+                value: playerBar.status.volume === undefined ? 80 : playerBar.status.volume
+                onMoved: Daemon.setVolume(Math.round(value))
+            }
+
+            IconButton {
+                iconName: "picture_in_picture"
+                iconSize: 18
+                toolTip: qsTr("Now Playing")
+                onClicked: playerBar.openNowPlaying()
+            }
+
+            IconButton {
+                iconName: "queue"
+                iconSize: 18
+                toolTip: qsTr("Queue")
                 onClicked: playerBar.queueRequested()
             }
         }
-    }
-
-    function formatTime(ms) {
-        if (!ms || ms <= 0) return "0:00"
-        var s = Math.floor(ms / 1000)
-        var m = Math.floor(s / 60)
-        s = s % 60
-        return m + ":" + (s < 10 ? "0" : "") + s
-    }
-
-    function volumeIconName() {
-        var v = playerBar.status.volume === undefined ? 80 : playerBar.status.volume
-        if (v === 0) return "volumeMute"
-        if (v < 33) return "volumeLow"
-        if (v < 66) return "volumeMed"
-        return "volumeHigh"
     }
 }

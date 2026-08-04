@@ -44,6 +44,15 @@ dependencies = [
     # Optional integrations
     "pypresence>=4.3.0",
     # MPRIS already covered by dbus-next
+    # Performance autodetection
+    "psutil>=5.9.0",
+    # Async HTTP (prefetch, SponsorBlock, Last.fm)
+    "aiohttp>=3.9.0",
+    # Secure token storage
+    "keyring>=24.0.0",
+    "cryptography>=42.0.0",
+    # Local file metadata
+    "mutagen>=1.47.0",
 ]
 
 [project.optional-dependencies]
@@ -97,6 +106,16 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B011"]
+# buffer_manager.py ships byte-for-byte as specified (disk I/O in async
+# prefetch is intentional); these lints are structural, not correctness.
+"src/sonictune/player/buffer_manager.py" = ["ASYNC230", "ASYNC240", "RUF006", "SIM105", "SIM117"]
+# mpris/server.py uses dbus-next signature strings ("s", "b", "d", "x", "o",
+# "as", "a{sv}") as return annotations. With `from __future__ import annotations`
+# they are read as strings by dbus-next at runtime, never as Python names.
+"src/sonictune/mpris/server.py" = ["F821", "F722", "RUF006"]
+# Fire-and-forget asyncio tasks are an intentional, established pattern in the
+# UI proxy; dropping the handle is deliberate (qasync event loop keeps them alive).
+"src/sonictune/ui/daemon_proxy.py" = ["RUF006"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -1,7 +1,5 @@
 // components/LyricsView.qml — synced lyrics, centered and highlighted at
-// the current playback position.
-
-pragma ComponentBehavior: Bound
+// the current playback position (Material 3 Dark).
 
 import QtQuick
 import QtQuick.Layouts
@@ -19,11 +17,25 @@ Rectangle {
     property int currentTrackDurationMs: 0
     property int activeIndex: -1
 
+    // Spec-facing aliases — kept in sync with the legacy names above.
+    property var model: []
+    property int currentTimeMs: 0
+
+    onLinesChanged: lyricsView.model = lyricsView.lines
+    onCurrentPositionMsChanged: {
+        lyricsView.currentTimeMs = lyricsView.currentPositionMs
+        lyricsView._updateActive()
+    }
+
     Connections {
         target: Daemon
         function onLyricsReceived(l) {
             lyricsView.lines = l || []
             lyricsView._updateActive()
+        }
+        function onLyricsError(err) {
+            lyricsView.lines = []
+            lyricsView.activeIndex = -1
         }
     }
 
@@ -39,10 +51,18 @@ Rectangle {
         )
     }
 
+    function _lineTime(l) {
+        if (!l) return 0
+        if (l.timeMs !== undefined) return l.timeMs
+        if (l.time_ms !== undefined) return l.time_ms
+        return 0
+    }
+
     function _updateActive() {
+        var ls = lyricsView.lines || []
         var newActive = -1
-        for (var i = 0; i < lyricsView.lines.length; i++) {
-            if (lyricsView.lines[i].time_ms <= lyricsView.currentPositionMs) {
+        for (var i = 0; i < ls.length; i++) {
+            if (lyricsView._lineTime(ls[i]) <= lyricsView.currentPositionMs) {
                 newActive = i
             } else {
                 break
@@ -57,17 +77,17 @@ Rectangle {
     }
 
     onCurrentTrackTitleChanged: fetchLyrics()
-    onCurrentPositionMsChanged: _updateActive()
 
     ListView {
         id: listView
         anchors.fill: parent
-        anchors.margins: Theme.spacingXl
+        anchors.margins: Theme.space8
         clip: true
         model: lyricsView.lines
-        spacing: Theme.spacingSm
+        spacing: Theme.space3
         interactive: true
-        visible: lyricsView.lines.length > 0
+        visible: (lyricsView.lines || []).length > 0
+        cacheBuffer: Theme.listCacheBuffer
 
         delegate: Text {
             id: lyricLine
@@ -75,24 +95,29 @@ Rectangle {
             required property int index
 
             width: listView.width
-            text: modelData.text
-            color: index === lyricsView.activeIndex ? Theme.primary : Theme.onSurfaceVariant
+            text: modelData.text || ""
+            color: index === lyricsView.activeIndex ? Theme.primary : Theme.onSurface
             font: index === lyricsView.activeIndex ? Theme.fontTitleLarge : Theme.fontBodyLarge
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
 
-            Behavior on color { ColorAnimation { duration: Theme.durationBase } }
+            Behavior on color {
+                enabled: !Theme.reducedMotion
+                ColorAnimation { duration: Theme.durNormal }
+            }
 
-            opacity: Math.max(0.3, 1 - Math.abs(index - lyricsView.activeIndex) * 0.15)
-            Behavior on opacity { NumberAnimation { duration: Theme.durationBase } }
+            opacity: Math.max(0.45, 1 - Math.abs(index - lyricsView.activeIndex) * 0.15)
+            Behavior on opacity {
+                enabled: !Theme.reducedMotion
+                NumberAnimation { duration: Theme.durNormal }
+            }
 
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    if (lyricLine.modelData.time_ms > 0) {
-                        Daemon.seek(lyricLine.modelData.time_ms)
-                    }
+                    var t = lyricsView._lineTime(lyricLine.modelData)
+                    if (t > 0) Daemon.seek(t)
                 }
             }
         }
@@ -100,17 +125,30 @@ Rectangle {
 
     ColumnLayout {
         anchors.centerIn: parent
-        visible: lyricsView.lines.length === 0
-        spacing: Theme.spacingSm
+        visible: (lyricsView.lines || []).length === 0
+        spacing: Theme.space2
 
-        Icon { Layout.alignment: Qt.AlignHCenter; name: "note"; size: 28; color: Theme.onSurfaceVariant }
+        Icon {
+            Layout.alignment: Qt.AlignHCenter
+            name: "lyrics"
+            size: 28
+            color: Theme.onSurfaceVariant
+        }
+
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: lyricsView.currentTrackTitle
-                ? qsTr("No lyrics found for \"%1\"").arg(lyricsView.currentTrackTitle)
-                : qsTr("Nothing playing")
-            color: Theme.onSurfaceVariant
+            text: qsTr("No lyrics found")
+            color: Theme.onSurface
             font: Theme.fontTitleMedium
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        Text {
+            Layout.alignment: Qt.AlignHCenter
+            visible: lyricsView.currentTrackTitle !== ""
+            text: qsTr("for \"%1\"").arg(lyricsView.currentTrackTitle)
+            color: Theme.onSurfaceVariant
+            font: Theme.fontBodyMedium
             horizontalAlignment: Text.AlignHCenter
         }
     }

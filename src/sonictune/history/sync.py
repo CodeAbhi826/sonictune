@@ -9,6 +9,7 @@ and subject to rate-limiting. Use with care.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 from collections import deque
 
@@ -35,10 +36,8 @@ class HistorySync:
     async def stop(self) -> None:
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
             self._task = None
         log.info("history_sync.stopped")
 

@@ -26,7 +26,7 @@ from sonictune.library.models import Track
 log = structlog.get_logger()
 
 
-class RepeatMode(str, enum.Enum):
+class RepeatMode(enum.StrEnum):
     OFF = "off"
     ALL = "all"
     ONE = "one"
@@ -186,7 +186,7 @@ class QueueManager:
             indices.remove(current)
         random.shuffle(indices)
         if current >= 0:
-            self._shuffled_order = [current] + indices
+            self._shuffled_order = [current, *indices]
         else:
             self._shuffled_order = indices
         self._shuffled_position = 0 if current >= 0 else -1

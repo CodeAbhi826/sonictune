@@ -2,7 +2,7 @@
 
 import QtQuick
 import QtQuick.Layouts
-import "../theme"
+import theme 1.0
 
 Rectangle {
     id: card
@@ -17,12 +17,15 @@ Rectangle {
     height: 196
     color: "transparent"
 
-    scale: ma.pressed ? 0.98 : 1.0
-    Behavior on scale { NumberAnimation { duration: Theme.durationFast } }
+    scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
+    Behavior on scale {
+        enabled: !Theme.reducedMotion
+        NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
+    }
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spacingSm
+        spacing: Theme.space2
 
         Rectangle {
             Layout.preferredWidth: 152
@@ -52,7 +55,23 @@ Rectangle {
                 radius: width / 2
                 color: Theme.scrim
                 opacity: ma.containsMouse ? 0.22 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast }
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: "transparent"
+                border.width: 1.5
+                border.color: Theme.primary
+                opacity: ma.containsMouse ? 1 : 0
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast }
+                }
             }
         }
 

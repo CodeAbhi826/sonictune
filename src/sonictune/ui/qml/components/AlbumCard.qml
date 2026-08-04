@@ -1,9 +1,9 @@
-// components/AlbumCard.qml — ArchiveTune-style card: 180x220, 16px-radius
-// art with a hover play overlay that scales in with OutBack easing.
+// components/AlbumCard.qml — album card: 180x220, 16px-radius art with a
+// hover play overlay and a border-highlight lift on hover.
 
 import QtQuick
 import QtQuick.Layouts
-import "../theme"
+import theme 1.0
 
 Rectangle {
     id: card
@@ -19,12 +19,15 @@ Rectangle {
     height: 220
     color: "transparent"
 
-    scale: ma.pressed ? 0.97 : 1.0
-    Behavior on scale { NumberAnimation { duration: Theme.durationFast } }
+    scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
+    Behavior on scale {
+        enabled: !Theme.reducedMotion
+        NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
+    }
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spacingXs
+        spacing: Theme.space1
 
         Rectangle {
             Layout.fillWidth: true
@@ -48,15 +51,29 @@ Rectangle {
                 color: Theme.onSurfaceVariant
             }
 
-            // Hover scrim
             Rectangle {
                 anchors.fill: parent
                 color: Theme.scrim
                 opacity: ma.containsMouse ? 0.5 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast }
+                }
             }
 
-            // Hover play button
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.radiusLg
+                color: "transparent"
+                border.width: 1.5
+                border.color: Theme.primary
+                opacity: ma.containsMouse ? 1 : 0
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast }
+                }
+            }
+
             Rectangle {
                 width: 44
                 height: 44
@@ -65,8 +82,14 @@ Rectangle {
                 color: Theme.primary
                 opacity: ma.containsMouse ? 1 : 0
                 scale: ma.containsMouse ? 1.0 : 0.8
-                Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
-                Behavior on scale { NumberAnimation { duration: Theme.durationFast; easing.type: Easing.OutBack } }
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast }
+                }
+                Behavior on scale {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
+                }
 
                 Icon { anchors.centerIn: parent; anchors.horizontalCenterOffset: 1; name: "play"; size: 18; color: Theme.onPrimary }
             }

@@ -8,17 +8,13 @@ SonicTune loads config in this priority order:
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import os
-import sys
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
 
 # --- Defaults --------------------------------------------------------------
 
@@ -40,28 +36,21 @@ DEFAULT_DATA_DIR = Path(
 
 @dataclass
 class AudioConfig:
-    """Audio playback settings."""
+    """Audio playback settings.
 
-    quality: str = "opus_160"  # opus_160 (free, 160kbps) | aac_256 (Premium, 256kbps)
+    ``quality`` is exactly one of the three Phase 2 levels:
+    "low", "standard", "high". ``itag`` is the resolved itag for the current
+    selection (0 = unset / auto-resolve, used by "high").
+    """
+
+    quality: str = "standard"  # ONLY: "low", "standard", "high"
+    itag: int = 0  # resolved itag; 0 = auto-resolve
     normalization: bool = True  # EBU R128 loudnorm via mpv af
     gapless: bool = True  # mpv --gapless-audio=yes
     volume_step: int = 5  # percent per step
     replaygain: bool = False  # for downloaded files
-    crossfade_seconds: float = 0.0  # 0 = disabled
-
-    # YouTube Music itags (don't change unless you know what you're doing)
-    ITAGS: dict[str, int] = field(
-        default_factory=lambda: {
-            "aac_256": 141,  # Premium AAC 256kbps
-            "opus_160": 251,  # Free Opus 160kbps
-            "aac_128": 140,  # Free AAC 128kbps fallback
-        }
-    )
-
-    @property
-    def itag(self) -> int:
-        """Resolve the configured quality to a YouTube itag."""
-        return self.ITAGS.get(self.quality, self.ITAGS["opus_160"])
+    crossfade_seconds: int = 0  # 0 = disabled (0-12s)
+    speed: float = 1.0  # playback speed (0.5x-2.0x)
 
 
 @dataclass
@@ -87,8 +76,8 @@ class CacheConfig:
 class UIConfig:
     """UI-related settings (read by the frontend)."""
 
-    theme: str = "dark"  # dark | light | archive
-    accent_color: str = "#6750A4"  # Material 3 default purple
+    theme: str = "dark"  # dark (Material 3 dark)
+    accent_color: str = "#D0BCFF"  # Material 3 primary purple
     volume_step: int = 5
     remember_page: bool = True
     report_history: bool = True  # Report plays to YouTube Music history/Recap
@@ -112,6 +101,80 @@ class MprisConfig:
 
 
 @dataclass
+class ShortcutsConfig:
+    """Configurable keyboard shortcuts (9 total)."""
+
+    play_pause: str = "Space"
+    next: str = "Ctrl+Right"
+    previous: str = "Ctrl+Left"
+    volume_up: str = "Ctrl+Up"
+    volume_down: str = "Ctrl+Down"
+    toggle_lyrics: str = "Ctrl+L"
+    toggle_queue: str = "Ctrl+Q"
+    toggle_mini_player: str = "Ctrl+M"
+    focus_search: str = "Ctrl+F"
+
+
+# EXACTLY 3 audio quality levels. 0 for "high" means auto-resolve
+# (see resolve_high_quality).
+QUALITY_ITAG_MAP: dict[str, int] = {
+    "low": 249,
+    "standard": 250,
+    "high": 0,
+}
+
+
+async def yt_dlp_extract_info(video_id: str) -> dict[str, Any]:
+    """Extract format info for a video via yt-dlp (async wrapper)."""
+    from yt_dlp import YoutubeDL
+
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": True,
+    }
+
+    def _extract() -> dict[str, Any]:
+        with YoutubeDL(opts) as ydl:
+            return ydl.extract_info(
+                f"https://music.youtube.com/watch?v={video_id}",
+                download=False,
+            )
+
+    return await asyncio.to_thread(_extract)
+
+
+async def resolve_high_quality(video_id: str, ytm: Any) -> int:
+    """Resolve 'high' quality. Order: 141 -> 774 -> 251."""
+    # Try ytmusicapi authenticated stream first
+    if ytm is not None and getattr(ytm, "auth", None):
+        try:
+            stream = ytm.get_song(video_id)
+            if stream and "adaptiveFormats" in stream:
+                itags = {f.get("itag") for f in stream["adaptiveFormats"]}
+                if 141 in itags:
+                    return 141
+                if 774 in itags:
+                    return 774
+        except Exception:
+            pass
+
+    # Fallback to yt-dlp format inspection
+    try:
+        info = await yt_dlp_extract_info(video_id)
+        formats = {f.get("format_id") for f in info.get("formats", [])}
+        if "141" in formats:
+            return 141
+        if "774" in formats:
+            return 774
+    except Exception:
+        pass
+
+    return 251  # Guaranteed best free quality
+
+
+@dataclass
 class DaemonConfig:
     """Top-level config object."""
 
@@ -120,6 +183,7 @@ class DaemonConfig:
     ui: UIConfig = field(default_factory=UIConfig)
     discord: DiscordConfig = field(default_factory=DiscordConfig)
     mpris: MprisConfig = field(default_factory=MprisConfig)
+    shortcuts: ShortcutsConfig = field(default_factory=ShortcutsConfig)
 
     # Paths
     config_dir: Path = DEFAULT_CONFIG_DIR
@@ -142,6 +206,62 @@ class DaemonConfig:
     def cookies_path(self) -> Path:
         return self.config_dir / "cookies.txt"
 
+    def save(self) -> None:
+        """Persist the current config back to ``config_dir/config.toml``."""
+        path = self.config_dir / "config.toml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        def _section(title: str, values: dict[str, Any]) -> str:
+            body = "\n".join(f"{k} = {_toml_value(v)}" for k, v in values.items())
+            return f"[{title}]\n{body}\n"
+
+        audio = {
+            "quality": self.audio.quality,
+            "itag": self.audio.itag,
+            "normalization": self.audio.normalization,
+            "gapless": self.audio.gapless,
+            "volume_step": self.audio.volume_step,
+            "replaygain": self.audio.replaygain,
+            "crossfade_seconds": self.audio.crossfade_seconds,
+            "speed": self.audio.speed,
+        }
+        ui = {
+            "theme": self.ui.theme,
+            "accent_color": self.ui.accent_color,
+            "volume_step": self.ui.volume_step,
+            "remember_page": self.ui.remember_page,
+            "report_history": self.ui.report_history,
+        }
+        shortcuts = {
+            "play_pause": self.shortcuts.play_pause,
+            "next": self.shortcuts.next,
+            "previous": self.shortcuts.previous,
+            "volume_up": self.shortcuts.volume_up,
+            "volume_down": self.shortcuts.volume_down,
+            "toggle_lyrics": self.shortcuts.toggle_lyrics,
+            "toggle_queue": self.shortcuts.toggle_queue,
+            "toggle_mini_player": self.shortcuts.toggle_mini_player,
+            "focus_search": self.shortcuts.focus_search,
+        }
+        text = (
+            "# SonicTune configuration (auto-saved).\n\n"
+            + _section("audio", audio)
+            + _section("ui", ui)
+            + _section("shortcuts", shortcuts)
+        )
+        path.write_text(text)
+
+
+def _toml_value(value: Any) -> str:
+    """Render a Python value as a TOML literal."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, Path):
+        value = str(value)
+    return json.dumps(value)
+
 
 # --- Loader ----------------------------------------------------------------
 
@@ -150,12 +270,14 @@ _DEFAULT_TOML = """
 # Edit values below to customize. Restart the daemon for changes to take effect.
 
 [audio]
-quality = "opus_160"          # opus_160 (free, 160kbps) | aac_256 (Premium, 256kbps)
+quality = "standard"          # low | standard | high  (high auto-resolves)
+itag = 0                      # 0 = auto-resolve (from quality)
 normalization = true
 gapless = true
 volume_step = 5
 replaygain = false
-crossfade_seconds = 0.0       # 0 = disabled
+crossfade_seconds = 0         # 0 = disabled (0-12s)
+speed = 1.0                   # playback speed (0.5-2.0)
 
 [cache]
 audio_size_mb = 1024
@@ -163,11 +285,22 @@ art_size_mb = 256
 # directory = "~/.cache/sonictune"  # uncomment to override
 
 [ui]
-theme = "dark"                # dark | light | archive
-accent_color = "#C4D6B0"      # ArchiveTune sage green
+theme = "dark"                # Material 3 dark
+accent_color = "#D0BCFF"      # Material 3 primary
 volume_step = 5
 remember_page = true
 report_history = true         # Report plays to YouTube Music history/Recap
+
+[shortcuts]
+play_pause = "Space"
+next = "Ctrl+Right"
+previous = "Ctrl+Left"
+volume_up = "Ctrl+Up"
+volume_down = "Ctrl+Down"
+toggle_lyrics = "Ctrl+L"
+toggle_queue = "Ctrl+Q"
+toggle_mini_player = "Ctrl+M"
+focus_search = "Ctrl+F"
 
 [discord]
 enabled = false
@@ -238,6 +371,11 @@ def load_config(explicit_path: Path | str | None = None) -> DaemonConfig:
             if hasattr(config.mpris, k):
                 setattr(config.mpris, k, v)
 
+    if "shortcuts" in data:
+        for k, v in data["shortcuts"].items():
+            if hasattr(config.shortcuts, k):
+                setattr(config.shortcuts, k, v)
+
     if "daemon" in data:
         daemon = data["daemon"]
         if "log_level" in daemon:
@@ -257,11 +395,15 @@ def load_config(explicit_path: Path | str | None = None) -> DaemonConfig:
 
 
 __all__ = [
+    "QUALITY_ITAG_MAP",
     "AudioConfig",
     "CacheConfig",
     "DaemonConfig",
     "DiscordConfig",
     "MprisConfig",
+    "ShortcutsConfig",
     "UIConfig",
     "load_config",
+    "resolve_high_quality",
+    "yt_dlp_extract_info",
 ]
