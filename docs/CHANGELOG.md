@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased] — 2026-08-04 (Post-Revamp fixes)
+
+### Added
+- **ytmusicapi-native stream resolver** in `library/ytmusic.py` — resolves playable stream URLs directly via ytmusicapi instead of yt-dlp, fixing playback for non-Premium accounts (`5e0ef1a`, `ebd380f`).
+- Material 3 UI token expansion in `theme/Theme.qml` + new `STButton.qml`/`STSlider.qml` component sources (`5e0ef1a`).
+- YT Music history reporting wired through `daemon_proxy` → `app.py` (`95f1de1`).
+- Expanded test suite: `tests/test_mpris.py`, `tests/test_player.py`, `tests/test_stats.py`, `tests/test_config.py`, `tests/test_ui.py`, `tests/test_ytmusic.py`, plus new `tests/conftest.py` fixture helpers (`5e0ef1a`).
+
+### Changed
+- Full UI revamp pass across `NowPlayingPage`, `SettingsPage`, `SearchPage`, `HomePage`, `PlayerBar`, `TrackList`, `NavRail`, `Icon`, `Theme.qml` — M3 styling, layout and white-text fixes (`95f1de1`, `ec8d60e`).
+- `README.md` trimmed to a concise status marker ("Still in development") (`d1be9ff`).
+
+### Fixed
+- Audio stream resolution failing for non-Premium accounts (all playback broken) — stream resolver switched to ytmusicapi-native approach (`ebd380f`).
+- UI stuck on loading — qasync event loop now driven from `app.py`, QML type/anchoring fixes (`076b087`).
+- Playback + search result mapping + white text on search results (`ec8d60e`).
+- `MpvPlayer` annotation resolved; `daemonConnected` access qualified in QML (`f8b0f0a`).
+- Daemon connected state exposed to QML so the banner was no longer falsely shown (`6ffd227`).
+- Merged audit fixes + UI revamp into the unified single-process architecture (`90094b4`).
+
+---
+
 ## [Unreleased] — 2026-08-01 (Phase C — UI Revamp)
 
 ### Added
