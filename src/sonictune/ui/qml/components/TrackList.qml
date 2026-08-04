@@ -35,15 +35,24 @@ Rectangle {
     signal addToQueue(string videoId)
     signal emptyActionClicked()
 
-    ListView {
-        id: list
-        anchors.fill: parent
-        clip: true
-        model: root.tracks
-        spacing: 2
-        boundsBehavior: Flickable.StopAtBounds
+ListView {
+    id: list
+    anchors.fill: parent
+    clip: true
+    model: root.tracks
+    spacing: 2
+    boundsBehavior: Flickable.StopAtBounds
+    cacheBuffer: 1200
 
-        delegate: Rectangle {
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: (event) => {
+            list.flick(0, event.angleDelta.y * 4)
+            event.accepted = true
+        }
+    }
+
+    delegate: Rectangle {
             id: row
             required property var modelData
             required property int index

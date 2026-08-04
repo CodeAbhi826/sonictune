@@ -1,11 +1,13 @@
 // components/ArtistCard.qml — circular avatar + artist name card.
+// VISUAL-FIX: DropShadow on avatar, z-index on hover, image fade-in.
 
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import theme 1.0
 
 Rectangle {
-    id: card
+    id: root
 
     property string name: ""
     property string thumbnailUrl: ""
@@ -16,6 +18,8 @@ Rectangle {
     width: 152
     height: 196
     color: "transparent"
+
+    z: ma.containsMouse ? 10 : 1
 
     scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
     Behavior on scale {
@@ -33,18 +37,31 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             radius: width / 2
             color: Theme.surfaceContainer
-            clip: true
+
+            layer.enabled: true
+            layer.effect: DropShadow {
+                horizontalOffset: 0
+                verticalOffset: ma.containsMouse ? 4 : 2
+                radius: ma.containsMouse ? 12 : 6
+                samples: 16
+                color: Theme.shadowColor
+            }
 
             Image {
                 anchors.fill: parent
-                source: card.thumbnailUrl ? "image://art/" + encodeURIComponent(card.thumbnailUrl) : ""
+                source: root.thumbnailUrl ? "image://art/" + encodeURIComponent(root.thumbnailUrl) : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
+                opacity: status === Image.Ready ? 1.0 : 0.0
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: 200 }
+                }
             }
 
             Icon {
                 anchors.centerIn: parent
-                visible: !card.thumbnailUrl
+                visible: !root.thumbnailUrl
                 name: "note"
                 size: 24
                 color: Theme.onSurfaceVariant
@@ -77,7 +94,7 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: card.name
+            text: root.name
             color: Theme.onSurface
             font: Theme.fontTitleMedium
             elide: Text.ElideRight
@@ -90,6 +107,7 @@ Rectangle {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        onClicked: card.clicked(card.channelId)
+        acceptedButtons: Qt.LeftButton
+        onClicked: root.clicked(root.channelId)
     }
 }

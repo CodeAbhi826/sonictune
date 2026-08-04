@@ -15,6 +15,16 @@ from sonictune.player.null_player import NullPlayer
 from sonictune.player.queue import QueueManager
 
 
+@pytest.fixture(scope="session")
+def qapp():
+    """QApplication instance for Qt-based tests."""
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    yield app
+
+
+
 @pytest.fixture
 async def db(tmp_path: Path):
     d = Database(tmp_path / "test.db")

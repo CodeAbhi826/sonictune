@@ -1,12 +1,15 @@
 // components/AlbumCard.qml — album card: 180x220, 16px-radius art with a
 // hover play overlay and a border-highlight lift on hover.
+// VISUAL-FIX: fixed height prevents layout shift, DropShadow replaces
+// clipped elevation, press overlay replaces heavy Material ripple shader.
 
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import theme 1.0
 
 Rectangle {
-    id: card
+    id: root
 
     property string title: ""
     property string subtitle: ""
@@ -18,6 +21,8 @@ Rectangle {
     width: 180
     height: 220
     color: "transparent"
+
+    z: ma.containsMouse ? 10 : 1
 
     scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
     Behavior on scale {
@@ -34,18 +39,31 @@ Rectangle {
             Layout.preferredHeight: 180
             radius: Theme.radiusLg
             color: Theme.surfaceContainer
-            clip: true
+
+            layer.enabled: true
+            layer.effect: DropShadow {
+                horizontalOffset: 0
+                verticalOffset: ma.containsMouse ? 4 : 2
+                radius: ma.containsMouse ? 12 : 6
+                samples: 16
+                color: Theme.shadowColor
+            }
 
             Image {
                 anchors.fill: parent
-                source: card.thumbnailUrl ? "image://art/" + encodeURIComponent(card.thumbnailUrl) : ""
+                source: root.thumbnailUrl ? "image://art/" + encodeURIComponent(root.thumbnailUrl) : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
+                opacity: status === Image.Ready ? 1.0 : 0.0
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: 200 }
+                }
             }
 
             Icon {
                 anchors.centerIn: parent
-                visible: !card.thumbnailUrl
+                visible: !root.thumbnailUrl
                 name: "album"
                 size: 30
                 color: Theme.onSurfaceVariant
@@ -97,7 +115,7 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: card.title
+            text: root.title
             color: Theme.onSurface
             font: Theme.fontBodyMedium
             elide: Text.ElideRight
@@ -105,7 +123,7 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: card.subtitle
+            text: root.subtitle
             color: Theme.onSurfaceVariant
             font: Theme.fontBodySmall
             elide: Text.ElideRight
@@ -117,6 +135,7 @@ Rectangle {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        onClicked: card.clicked(card.browseId)
+        acceptedButtons: Qt.LeftButton
+        onClicked: root.clicked(root.browseId)
     }
 }

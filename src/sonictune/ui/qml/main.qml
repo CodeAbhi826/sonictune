@@ -21,6 +21,9 @@ ApplicationWindow {
     title: qsTr("SonicTune")
     color: Theme.background
 
+    property real globalScale: Math.max(1.0, Screen.pixelDensity / 120.0)
+    function dp(size) { return Math.round(size * globalScale) }
+
     Material.theme: Material.Dark
     Material.accent: Theme.primary
     Material.primary: Theme.primary

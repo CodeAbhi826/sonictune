@@ -122,6 +122,7 @@ QtObject {
     readonly property int shadowSm:  (lowEndMode || disableShadows) ? 0 : 2
     readonly property int shadowMd:  (lowEndMode || disableShadows) ? 0 : 4
     readonly property int shadowLg:  (lowEndMode || disableShadows) ? 0 : 8
+    readonly property color shadowColor: Qt.rgba(0, 0, 0, 0.25)
 
     // HELPERS
     function formatDuration(ms) {

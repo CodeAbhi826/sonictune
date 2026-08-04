@@ -1,11 +1,13 @@
 // components/PlaylistCard.qml — square card for playlists.
+// VISUAL-FIX: DropShadow on art, z-index on hover, image fade-in.
 
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import theme 1.0
 
 Rectangle {
-    id: card
+    id: root
 
     property string title: ""
     property string subtitle: ""
@@ -18,6 +20,8 @@ Rectangle {
     width: 168
     height: 224
     color: "transparent"
+
+    z: ma.containsMouse ? 10 : 1
 
     scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
     Behavior on scale {
@@ -34,18 +38,31 @@ Rectangle {
             Layout.preferredHeight: 168
             radius: Theme.radiusLg
             color: Theme.surfaceContainer
-            clip: true
+
+            layer.enabled: true
+            layer.effect: DropShadow {
+                horizontalOffset: 0
+                verticalOffset: ma.containsMouse ? 4 : 2
+                radius: ma.containsMouse ? 12 : 6
+                samples: 16
+                color: Theme.shadowColor
+            }
 
             Image {
                 anchors.fill: parent
-                source: card.thumbnailUrl ? "image://art/" + encodeURIComponent(card.thumbnailUrl) : ""
+                source: root.thumbnailUrl ? "image://art/" + encodeURIComponent(root.thumbnailUrl) : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
+                opacity: status === Image.Ready ? 1.0 : 0.0
+                Behavior on opacity {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: 200 }
+                }
             }
 
             Icon {
                 anchors.centerIn: parent
-                visible: !card.thumbnailUrl
+                visible: !root.thumbnailUrl
                 name: "queue"
                 size: 24
                 color: Theme.onSurfaceVariant
@@ -77,7 +94,7 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: card.title
+            text: root.title
             color: Theme.onSurface
             font: Theme.fontTitleMedium
             elide: Text.ElideRight
@@ -85,7 +102,7 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: qsTr("%n track(s)", "", card.trackCount)
+            text: qsTr("%n track(s)", "", root.trackCount)
             color: Theme.onSurfaceVariant
             font: Theme.fontBodySmall
             elide: Text.ElideRight
@@ -97,6 +114,7 @@ Rectangle {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        onClicked: card.clicked(card.playlistId)
+        acceptedButtons: Qt.LeftButton
+        onClicked: root.clicked(root.playlistId)
     }
 }

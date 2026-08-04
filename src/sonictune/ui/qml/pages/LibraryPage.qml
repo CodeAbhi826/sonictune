@@ -90,18 +90,16 @@ Item {
             Layout.fillHeight: true
             currentIndex: tabBar.currentIndex
 
-            // --- Songs ----------------------------------------------------
-            ScrollView {
-                contentWidth: availableWidth
-                clip: true
-                TrackList {
-                    width: libraryPage.width - Theme.space6 * 2
-                    tracks: libraryPage.songs
-                    emptyMessage: qsTr("Your library is empty")
-                    onPlayTrack: function(id) { Daemon.playTrack(id) }
-                    onAddToQueue: function(id) { Daemon.addToQueue(id, false) }
-                }
-            }
+// --- Songs ----------------------------------------------------
+TrackList {
+    Layout.fillWidth: true
+    Layout.fillHeight: true
+    width: libraryPage.width - Theme.space6 * 2
+    tracks: libraryPage.songs
+    emptyMessage: qsTr("Your library is empty")
+    onPlayTrack: function(id) { Daemon.playTrack(id) }
+    onAddToQueue: function(id) { Daemon.addToQueue(id, false) }
+}
 
             // --- Albums ---------------------------------------------------
             ScrollView {

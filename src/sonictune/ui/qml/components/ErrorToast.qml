@@ -89,4 +89,22 @@ Item {
         id: hideTimer
         onTriggered: toast.hide()
     }
+
+    DragHandler {
+        id: dismissDrag
+        target: bar
+        xAxis.enabled: true
+        yAxis.enabled: false
+        xAxis.minimum: -parent.width * 0.5
+        xAxis.maximum: parent.width * 0.5
+        onActiveChanged: {
+            if (!active) {
+                if (Math.abs(bar.x) > parent.width * 0.3) {
+                    toast.hide()
+                } else {
+                    bar.x = 0
+                }
+            }
+        }
+    }
 }
