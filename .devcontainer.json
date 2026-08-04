@@ -1,0 +1,31 @@
+// .devcontainer.json
+{
+  "name": "SonicTune Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "username": "vscode",
+      "uid": "1000",
+      "gid": "1000"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.14"
+    }
+  },
+  "runArgs": [
+    "--privileged", // Required for X11 forwarding
+    "--env=DISPLAY=:1", // Forward X11 display
+    "--volume=/tmp/.X11-unix:/tmp/.X11-unix" // Share X11 socket
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [8000], // For web-based UI testing
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools"
+      ]
+    }
+  }
+}
