@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] — 2026-08-04 (QA suite green + QML polish)
+
+### Added
+- `qapp` fixture in `tests/conftest.py` for Qt-based tests (`240bcdf`).
+- `WheelHandler` + `cacheBuffer: 1200` on `TrackList.qml` to fix scroll-wheel hijacking (`240bcdf`).
+- `Theme.shadowColor` token; card shadows now come from theme instead of hardcoded hex (`240bcdf`).
+
+### Changed
+- `LibraryPage.qml` Songs tab unwrapped from `ScrollView` so the `ListView` owns its own scrolling (`240bcdf`).
+- `AlbumCard.qml`/`ArtistCard.qml`/`PlaylistCard.qml` replace clipped elevation with `DropShadow` (no more shadow clipping) (`240bcdf`).
+
+### Fixed
+- Full test suite green: **206 passed, 3 skipped** (`240bcdf`).
+  - Comprehensive suite: prefetch tests await the async prefetch task before asserting; image-cache LRU test mirrors the real per-insert eviction.
+  - `test_ui.py`: explicit UTF-8 file reads (locale is polluted to `C` by `mpv_player`), and QML no longer contains hardcoded hex colors.
+  - Restored discarded Phase 2 work and added the QA regression suite (`18e1d52`).
+
+---
+
 ## [Unreleased] — 2026-08-04 (Post-Revamp fixes)
 
 ### Added
