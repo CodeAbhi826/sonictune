@@ -7,6 +7,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "../theme"
 import "../components"
+import "../router"
 
 Item {
     id: libraryPage
@@ -174,9 +175,13 @@ TrackList {
                                 required property var modelData
                                 title: playlistItem.modelData.title || ""
                                 subtitle: playlistItem.modelData.owner || ""
+                                playlistId: playlistItem.modelData.playlist_id || ""
                                 trackCount: playlistItem.modelData.track_count || 0
                                 thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(playlistItem.modelData.title || "", "songs", 20)
+                                onClicked: Router.pushPage("PlaylistDetailPage.qml", {
+                                    playlistId: playlistItem.modelData.playlist_id || "",
+                                    playlistTitle: playlistItem.modelData.title || ""
+                                })
                             }
                         }
                     }

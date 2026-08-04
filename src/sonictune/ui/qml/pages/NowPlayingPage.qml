@@ -20,6 +20,7 @@ Item {
     property int positionMs: 0
     property int durationMs: 0
     property bool isPlaying: false
+    property var lyricsModel: []
 
     property string audioQuality: "standard"
     property int currentItag: 0
@@ -48,9 +49,19 @@ Item {
         target: Daemon
         function onTrackChanged(track) {
             nowPlayingPage.currentTrack = track || {}
+            nowPlayingPage.lyricsModel = []
             if (nowPlayingPage.sleepAtTrackEnd) {
                 nowPlayingPage.stopSleepTimer()
                 Daemon.pause()
+            }
+            // Fetch lyrics for the new track
+            if (track && track.title) {
+                Daemon.getLyrics(
+                    track.title,
+                    track.artist || "",
+                    track.album || "",
+                    track.duration_ms || 0
+                )
             }
         }
         function onPositionChanged(pos, dur) {
@@ -73,7 +84,13 @@ Item {
         }
         function onAudioQualityChanged(q) { nowPlayingPage.audioQuality = q }
         function onCurrentAudioItagChanged(itag) { nowPlayingPage.currentItag = itag }
-        function onLyricsError(err) { toast.show(qsTr("Lyrics unavailable")) }
+        function onLyricsReceived(lines) {
+            nowPlayingPage.lyricsModel = lines
+        }
+        function onLyricsError(err) {
+            toast.show(qsTr("Lyrics unavailable: %1").arg(err))
+            nowPlayingPage.lyricsModel = []
+        }
     }
 
     Component.onCompleted: {
@@ -344,7 +361,7 @@ Item {
             }
 
             // --- Lyrics panel ------------------------------------------------
-            LyricsView {
+            SyncedLyricsView {
                 anchors.fill: parent
                 anchors.margins: Theme.space4
                 visible: nowPlayingPage.lyricsVisible
@@ -353,6 +370,7 @@ Item {
                 currentTrackAlbum: nowPlayingPage.currentTrack.album || ""
                 currentTrackDurationMs: nowPlayingPage.durationMs
                 currentPositionMs: nowPlayingPage.positionMs
+                model: nowPlayingPage.lyricsModel
             }
         }
     }

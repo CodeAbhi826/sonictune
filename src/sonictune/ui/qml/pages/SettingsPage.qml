@@ -92,7 +92,7 @@ Item {
                 width: settingsPage.width - Theme.space6 * 2
                 spacing: Theme.space3
 
-                // ---- Audio -------------------------------------------------
+                 // ---- Audio -------------------------------------------------
                 SettingsSection {
                     id: audioSection
                     title: qsTr("Audio")
@@ -179,6 +179,57 @@ Item {
                                     spacing: 0
                                     Text { text: qsTr("Output device"); color: Theme.onSurface; font: Theme.fontBodyMedium }
                                     Text { text: qsTr("Coming soon"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                                }
+                            }
+                        }
+
+                        // Hardware acceleration
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 64
+                            radius: Theme.radiusMd
+                            color: Theme.surfaceContainer
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: Theme.space4
+                                anchors.rightMargin: Theme.space4
+                                spacing: Theme.space3
+
+                                Icon { name: "memory"; size: 18; color: Theme.onSurfaceVariant }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    Text { text: qsTr("Hardware acceleration"); color: Theme.onSurface; font: Theme.fontBodyMedium }
+                                    Text { text: qsTr("Auto (VAAPI/NVDEC)"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                                }
+                            }
+                        }
+
+                        // Audio normalization
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 64
+                            radius: Theme.radiusMd
+                            color: Theme.surfaceContainer
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: Theme.space4
+                                anchors.rightMargin: Theme.space4
+                                spacing: Theme.space3
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    Text { text: qsTr("Audio normalization"); color: Theme.onSurface; font: Theme.fontBodyMedium }
+                                    Text { text: qsTr("Loudness normalization (I=-16 LUFS)"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                                }
+
+                                Switch {
+                                    checked: true  // Always enabled for now
+                                    enabled: false  // Disabled until configurable
+                                    Material.accent: Theme.primary
                                 }
                             }
                         }

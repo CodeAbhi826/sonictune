@@ -72,6 +72,10 @@ class MpvPlayer:
             video=False,
             # Config-driven
             gapless_audio="yes" if self._config.gapless else "no",
+            # Hardware decoding (auto-safe falls back to software if HW fails)
+            hwdec="auto-safe",
+            # Use GPU for video rendering if playing music videos
+            gpu_context="wayland",  # or "x11egl" depending on session
             # Network
             cache=True,
             demuxer_max_bytes=50 * 1024 * 1024,  # 50 MB
@@ -91,7 +95,7 @@ class MpvPlayer:
 
         # Audio normalization (compressor/loudnorm filter)
         if self._config.normalization:
-            self._mpv["af"] = "lavfi=[speechnorm=e=50:r=0.0001:l=1]"
+            self._mpv["af"] = "lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]"
 
         # YouTube Music stream URLs only serve correctly when the request
         # carries a matching Referer; without it the CDN stalls/refuses and
@@ -99,9 +103,9 @@ class MpvPlayer:
         self._mpv["referrer"] = "https://music.youtube.com/"
 
         # Crossfade (mpv af filter)
-        if self._config.crossfade_seconds > 0:
+        if self._crossfade_seconds > 0:
             existing = self._mpv["af"] or ""
-            xfade = f"lavfi=[acrossfade=d={self._config.crossfade_seconds}]"
+            xfade = f"lavfi=[acrossfade=d={self._crossfade_seconds}:c1=tri:c2=tri]"
             self._mpv["af"] = f"{existing},{xfade}" if existing else xfade
 
         # Register event handlers (run in mpv's thread — marshal to our loop)

@@ -1,6 +1,5 @@
 // main.qml — SonicTune main window (Material 3 Dark).
-// Nav rail on the left, five pages in a StackLayout, floating PlayerBar,
-// Now Playing + Queue drawers, global shortcuts and a daemon error toast.
+// Desktop NavigationRail + StackView + persistent NowPlayingBar.
 
 import QtQuick
 import QtQuick.Controls
@@ -10,6 +9,7 @@ import QtQuick.Window
 import "theme"
 import "pages"
 import "components"
+import "router"
 
 ApplicationWindow {
     id: window
@@ -34,6 +34,8 @@ ApplicationWindow {
     property bool daemonConnected: Daemon.isConnected()
 
     signal miniPlayerToggleRequested()
+
+    Component.onCompleted: Router.stackView = contentStack
 
     Connections {
         target: Daemon
@@ -69,6 +71,7 @@ ApplicationWindow {
         }
     }
 
+    // --- Main Layout: NavRail + ContentStack + NowPlayingBar ---------------
     RowLayout {
         anchors.top: connectionBanner.bottom
         anchors.left: parent.left
@@ -76,72 +79,60 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         spacing: 0
 
+        // Left Navigation Rail (Spotube/Harmonoid style)
         NavRail {
             id: navRail
-            Layout.fillHeight: true
             Layout.preferredWidth: 88
-            currentIndex: pageStack.currentIndex
-            onNavigate: function(pageName) {
-                pageStack.switchTo(pageName)
-            }
+            Layout.fillHeight: true
+            stackView: contentStack
         }
 
         Rectangle {
-            Layout.fillWidth: false
-            Layout.fillHeight: true
             Layout.preferredWidth: 1
+            Layout.fillHeight: true
             color: Theme.outline
         }
 
-        Item {
-            id: contentArea
+        // Main Content Area (StackView for all pages)
+        StackView {
+            id: contentStack
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.bottomMargin: 80 // Space for NowPlayingBar
 
-            // Padding so the floating PlayerBar doesn't cover content.
-            StackLayout {
-                id: pageStack
-                anchors.fill: parent
-                anchors.bottomMargin: 104
+            initialItem: "qrc:/qml/pages/HomePage.qml"
 
-                function switchTo(name) {
-                    currentIndex = {
-                        "home": 0,
-                        "search": 1,
-                        "library": 2,
-                        "stats": 3,
-                        "settings": 4
-                    }[name] || 0
+            pushEnter: Transition {
+                enabled: !Theme.reducedMotion
+                ParallelAnimation {
+                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.durNormal }
+                    NumberAnimation { property: "x"; from: 40; to: 0; duration: Theme.durNormal; easing.type: Easing.OutCubic }
                 }
-
-                HomePage {
-                    id: homePage
-                    onOpenSearch: function(query) {
-                        pageStack.switchTo("search")
-                        searchPage.searchFor(query)
-                    }
+            }
+            pushExit: Transition {
+                enabled: !Theme.reducedMotion
+                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.durFast }
+            }
+            popEnter: Transition {
+                enabled: !Theme.reducedMotion
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.durFast }
+            }
+            popExit: Transition {
+                enabled: !Theme.reducedMotion
+                ParallelAnimation {
+                    NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.durNormal }
+                    NumberAnimation { property: "x"; from: 0; to: -40; duration: Theme.durNormal; easing.type: Easing.OutCubic }
                 }
-                SearchPage { id: searchPage }
-                LibraryPage {
-                    id: libraryPage
-                    onNavigateRequested: function(name) { pageStack.switchTo(name) }
-                }
-                StatsPage { id: statsPage }
-                SettingsPage { id: settingsPage }
             }
         }
     }
 
-    // --- Floating PlayerBar ------------------------------------------------
-    PlayerBar {
-        id: playerBar
-        anchors.left: parent.left
-        anchors.leftMargin: navRail.width + Theme.space4
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.space4
+    // --- Persistent Bottom Now Playing Bar ---------------------------------
+    NowPlayingBar {
+        id: nowPlayingBar
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.space4
-        height: 72
+        width: parent.width
+        height: 80
         z: 100
         onQueueRequested: queueDrawer.open()
         onOpenNowPlaying: nowPlayingDrawer.open()
@@ -204,7 +195,7 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+L"
         onActivated: {
-            pageStack.switchTo("search")
+            contentStack.currentIndex = 1 // Search
             searchPage.focusSearch()
         }
     }
@@ -218,7 +209,7 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Ctrl+F"
-        onActivated: pageStack.switchTo("search")
+        onActivated: contentStack.currentIndex = 1 // Search
     }
 
     Connections {

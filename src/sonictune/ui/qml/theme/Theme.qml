@@ -15,58 +15,103 @@ QtObject {
     property bool smoothScrolling: true
 
     // MATERIAL 3 DARK SURFACES
-    readonly property color background:             "#0F0F0F"
-    readonly property color onBackground:           Qt.color("#FFFFFF")
-    readonly property color surface:                "#1C1B1F"
-    readonly property color surfaceDim:             "#141218"
-    readonly property color surfaceBright:          "#3B383E"
-    readonly property color surfaceContainerLowest: "#0F0D13"
-    readonly property color surfaceContainerLow:    "#1D1B20"
-    readonly property color surfaceContainer:       "#211F26"
-    readonly property color surfaceContainerHigh:   "#2B2930"
-    readonly property color surfaceContainerHighest:"#36343B"
-    readonly property color surfaceVariant:         "#49454F"
-    readonly property color onSurface:              Qt.color("#E6E0E9")
-    readonly property color onSurfaceVariant:       Qt.color("#CAC4D0")
+    property color background:             "#0F0F0F"
+    property color onBackground:           Qt.color("#FFFFFF")
+    property color surface:                "#1C1B1F"
+    property color surfaceDim:             "#141218"
+    property color surfaceBright:          "#3B383E"
+    property color surfaceContainerLowest: "#0F0D13"
+    property color surfaceContainerLow:    "#1D1B20"
+    property color surfaceContainer:       "#211F26"
+    property color surfaceContainerHigh:   "#2B2930"
+    property color surfaceContainerHighest:"#36343B"
+    property color surfaceVariant:         "#49454F"
+    property color onSurface:              Qt.color("#FFFFFF")
+    property color onSurfaceVariant:       Qt.color("#FFFFFF")
 
     // MATERIAL 3 PRIMARY (Purple accent)
-    readonly property color primary:                "#D0BCFF"
-    readonly property color onPrimary:              Qt.color("#381E72")
-    readonly property color primaryContainer:       "#4F378B"
-    readonly property color onPrimaryContainer:     Qt.color("#EADDFF")
-    readonly property color inversePrimary:         "#6750A4"
+    property color primary:                "#D0BCFF"
+    property color onPrimary:              Qt.color("#FFFFFF")
+    property color primaryContainer:       "#4F378B"
+    property color onPrimaryContainer:     Qt.color("#FFFFFF")
+    property color inversePrimary:         "#6750A4"
 
     // MATERIAL 3 SECONDARY
-    readonly property color secondary:              "#CCC2DC"
-    readonly property color onSecondary:            Qt.color("#332D41")
-    readonly property color secondaryContainer:     "#4A4458"
-    readonly property color onSecondaryContainer:   Qt.color("#E8DEF8")
+    property color secondary:              "#CCC2DC"
+    property color onSecondary:            Qt.color("#FFFFFF")
+    property color secondaryContainer:     "#4A4458"
+    property color onSecondaryContainer:   Qt.color("#FFFFFF")
 
     // MATERIAL 3 TERTIARY (Pink accent)
-    readonly property color tertiary:               "#EFB8C8"
-    readonly property color onTertiary:             Qt.color("#492532")
-    readonly property color tertiaryContainer:      "#633B48"
-    readonly property color onTertiaryContainer:    Qt.color("#FFD9E3")
+    property color tertiary:               "#EFB8C8"
+    property color onTertiary:             Qt.color("#FFFFFF")
+    property color tertiaryContainer:      "#633B48"
+    property color onTertiaryContainer:    Qt.color("#FFFFFF")
 
     // MATERIAL 3 ERROR
-    readonly property color error:                  "#F2B8B5"
-    readonly property color onError:                Qt.color("#601410")
-    readonly property color errorContainer:         "#8C1D18"
-    readonly property color onErrorContainer:       Qt.color("#F9DEDC")
+    property color error:                  "#F2B8B5"
+    property color onError:                Qt.color("#FFFFFF")
+    property color errorContainer:         "#8C1D18"
+    property color onErrorContainer:       Qt.color("#FFFFFF")
 
     // OUTLINES
-    readonly property color outline:                "#938F99"
-    readonly property color outlineVariant:         "#49454F"
+    property color outline:                "#938F99"
+    property color outlineVariant:         "#49454F"
 
     // EXTENDED TOKENS
-    readonly property color success:                "#B9E0C2"
-    readonly property color scrim:                  Qt.rgba(0, 0, 0, 0.6)
+    property color success:                "#B9E0C2"
+    property color scrim:                  Qt.rgba(0, 0, 0, 0.6)
 
     // PLAYER SPECIFIC
-    readonly property color playerBarBg:            "#1C1B1F"
-    readonly property color playerBarBorder:        "#2B2930"
-    readonly property color playerProgress:         "#D0BCFF"
-    readonly property color playerProgressBg:       "#49454F"
+    property color playerBarBg:            "#1C1B1F"
+    property color playerBarBorder:        "#2B2930"
+    property color playerProgress:         "#D0BCFF"
+    property color playerProgressBg:       "#49454F"
+
+    // DYNAMIC PALETTE UPDATE (Material You)
+    function updateDynamicPalette(palette) {
+        if (!palette) return
+
+        theme.primary = palette.primary || theme.primary
+        theme.onPrimary = palette.onPrimary || theme.onPrimary
+        theme.primaryContainer = palette.primaryContainer || theme.primaryContainer
+        theme.onPrimaryContainer = palette.onPrimaryContainer || theme.onPrimaryContainer
+        theme.inversePrimary = palette.inversePrimary || theme.inversePrimary
+
+        theme.secondary = palette.secondary || theme.secondary
+        theme.onSecondary = palette.onSecondary || theme.onSecondary
+        theme.secondaryContainer = palette.secondaryContainer || theme.secondaryContainer
+        theme.onSecondaryContainer = palette.onSecondaryContainer || theme.onSecondaryContainer
+
+        theme.tertiary = palette.tertiary || theme.tertiary
+        theme.onTertiary = palette.onTertiary || theme.onTertiary
+        theme.tertiaryContainer = palette.tertiaryContainer || theme.tertiaryContainer
+        theme.onTertiaryContainer = palette.onTertiaryContainer || theme.onTertiaryContainer
+
+        theme.surface = palette.surface || theme.surface
+        theme.onSurface = palette.onSurface || theme.onSurface
+        theme.surfaceVariant = palette.surfaceVariant || theme.surfaceVariant
+        theme.onSurfaceVariant = palette.onSurfaceVariant || theme.onSurfaceVariant
+
+        theme.background = palette.background || theme.background
+        theme.onBackground = palette.onBackground || theme.onBackground
+
+        theme.outline = palette.outline || theme.outline
+        theme.outlineVariant = palette.outlineVariant || theme.outlineVariant
+
+        theme.error = palette.error || theme.error
+        theme.onError = palette.onError || theme.onError
+        theme.errorContainer = palette.errorContainer || theme.errorContainer
+        theme.onErrorContainer = palette.onErrorContainer || theme.onErrorContainer
+
+        theme.playerProgress = palette.primary || theme.playerProgress
+        theme.playerBarBg = palette.surface || theme.playerBarBg
+        theme.playerBarBorder = palette.outline || theme.playerBarBorder
+        theme.shadowColor = palette.shadow || theme.shadowColor
+        theme.scrim = palette.scrim || theme.scrim
+
+        theme.objectName = Math.random().toString()
+    }
 
     // TYPOGRAPHY
     property string fontFamily: "Inter"

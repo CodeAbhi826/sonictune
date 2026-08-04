@@ -6,6 +6,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
 import "../components"
+import "../router"
 
 Item {
     id: searchPage
@@ -313,14 +314,18 @@ Item {
                         spacing: Theme.space4
                         Repeater {
                             model: searchPage.playlistResults
-                            delegate: PlaylistCard {
-                                id: playlistItem
-                                required property var modelData
-                                title: playlistItem.modelData.title || ""
-                                subtitle: playlistItem.modelData.author || ""
-                                thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(playlistItem.modelData.title || "", "songs", 20)
-                            }
+delegate: PlaylistCard {
+                            id: playlistItem
+                            required property var modelData
+                            title: playlistItem.modelData.title || ""
+                            subtitle: playlistItem.modelData.author || ""
+                            playlistId: playlistItem.modelData.browse_id || ""
+                            thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
+                            onClicked: Router.pushPage("PlaylistDetailPage.qml", {
+                                playlistId: playlistItem.modelData.browse_id || "",
+                                playlistTitle: playlistItem.modelData.title || ""
+                            })
+                        }
                         }
                     }
                 }

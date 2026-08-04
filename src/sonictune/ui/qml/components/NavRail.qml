@@ -15,15 +15,17 @@ Rectangle {
     implicitWidth: 88
 
     property int currentIndex: 0
+    property var stackView: null
 
-    signal navigate(string pageName)
+    signal navigate(string pageUrl)
 
     readonly property var items: [
-        { name: "home",     icon: "home",     label: qsTr("Home") },
-        { name: "search",   icon: "search",   label: qsTr("Search") },
-        { name: "library",  icon: "library",  label: qsTr("Library") },
-        { name: "stats",    icon: "stats",    label: qsTr("Stats") },
-        { name: "settings", icon: "settings", label: qsTr("Settings") }
+        { name: "home",     url: "qrc:/qml/pages/HomePage.qml",     icon: "home",     label: qsTr("Home") },
+        { name: "search",   url: "qrc:/qml/pages/SearchPage.qml",   icon: "search",   label: qsTr("Search") },
+        { name: "library",  url: "qrc:/qml/pages/LibraryPage.qml",  icon: "library",  label: qsTr("Library") },
+        { name: "local",    url: "qrc:/qml/pages/LocalLibraryPage.qml", icon: "musicNote", label: qsTr("Local") },
+        { name: "stats",    url: "qrc:/qml/pages/StatsPage.qml",    icon: "stats",    label: qsTr("Stats") },
+        { name: "settings", url: "qrc:/qml/pages/SettingsPage.qml", icon: "settings", label: qsTr("Settings") }
     ]
 
     ColumnLayout {
@@ -103,7 +105,20 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: navRail.navigate(navItem.modelData.name)
+                        onClicked: {
+                            if (navRail.stackView) {
+                                var targetUrl = navItem.modelData.url
+                                if (navRail.stackView.currentItem && navRail.stackView.currentItem.url === targetUrl) {
+                                    // Already on this page, pop to root
+                                    navRail.stackView.pop(null, StackView.Immediate)
+                                } else {
+                                    // Navigate to the page
+                                    navRail.stackView.replace(targetUrl)
+                                }
+                            } else {
+                                navRail.navigate(navItem.modelData.url)
+                            }
+                        }
                     }
                 }
             }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6750A4"/>
+      <stop offset="100%" stop-color="#9A82DB"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded background -->
+  <rect x="4" y="4" width="120" height="120" rx="28" ry="28" fill="url(#bg)"/>
+  <!-- Sound waves (centered) -->
+  <g transform="translate(64,64)" stroke="url(#wave)" stroke-width="6" stroke-linecap="round" fill="none">
+    <line x1="-32" y1="0" x2="-32" y2="0" stroke-width="8"/>
+    <line x1="-20" y1="-16" x2="-20" y2="16"/>
+    <line x1="-8" y1="-26" x2="-8" y2="26"/>
+    <line x1="4" y1="-14" x2="4" y2="14"/>
+    <line x1="16" y1="-22" x2="16" y2="22"/>
+    <line x1="28" y1="-8" x2="28" y2="8"/>
+    <line x1="38" y1="-2" x2="38" y2="2"/>
+  </g>
+  <!-- Note dot (right side, smaller) -->
+  <circle cx="92" cy="64" r="6" fill="#FFFFFF" opacity="0.9"/>
+</svg>

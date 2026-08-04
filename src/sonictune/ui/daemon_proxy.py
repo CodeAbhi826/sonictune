@@ -13,6 +13,7 @@ import structlog
 from PySide6.QtCore import QObject, Signal, Slot
 
 from sonictune.config import QUALITY_ITAG_MAP, resolve_high_quality
+from sonictune.library.models import Track
 from sonictune.player.queue import RepeatMode
 from sonictune.player.types import PlayerEvent, TrackInfo
 
@@ -22,53 +23,11 @@ log = structlog.get_logger()
 class DaemonProxy(QObject):
     """Direct Python proxy — QML calls this, it calls services directly."""
 
-    # === Signals (same names as old DaemonClient — QML doesn't change) ===
-    stateChanged = Signal(str)
-    positionChanged = Signal(int, int)
-    trackChanged = Signal(dict)
-    queueChanged = Signal()
-    authChanged = Signal(bool)
-    connectionChanged = Signal(bool)
-    error = Signal(str)
-    errorOccurred = Signal(str)
-
-    # Audio quality
-    audioQualityChanged = Signal(str)
-    currentAudioItagChanged = Signal(int)
-
-    # Async operation signals
-    statusReceived = Signal(dict)
-    queueReceived = Signal(dict)
-    searchCompleted = Signal(list)
-    searchError = Signal(str)
-    searchSongsCompleted = Signal(list)
-    searchSongsError = Signal(str)
-    librarySongsReceived = Signal(list)
-    librarySongsError = Signal(str)
-    libraryAlbumsReceived = Signal(list)
-    libraryAlbumsError = Signal(str)
-    libraryPlaylistsReceived = Signal(list)
-    libraryPlaylistsError = Signal(str)
-    startOAuthCompleted = Signal(dict)
-    startOAuthError = Signal(str)
-    pollOAuthCompleted = Signal(bool)
-    pollOAuthError = Signal(str)
-    importCookiesCompleted = Signal(bool)
-    importCookiesError = Signal(str)
-    statsReceived = Signal(dict)
-    statsError = Signal(str)
-    syncLibraryCompleted = Signal(dict)
-    syncLibraryError = Signal(str)
-    syncLibraryProgress = Signal(str, int, int)
-    searchHistoryReceived = Signal(list)
-    searchHistoryError = Signal(str)
-    lyricsReceived = Signal(list)
-    lyricsError = Signal(str)
-    homeReceived = Signal(list)
-    homeError = Signal(str)
-    audioCacheSizeReceived = Signal(float)
-    audioCacheSizeError = Signal(str)
-    audioCacheCleared = Signal()
+    # Local library signals
+    localTracksReceived = Signal(list)
+    localTracksError = Signal(str)
+    localScanProgress = Signal(str, int, int)
+    localScanCompleted = Signal()
 
     def __init__(
         self,
@@ -103,6 +62,16 @@ class DaemonProxy(QObject):
         self._prefetch_scheduled_for: str | None = None
         self._ytm: Any = getattr(library, "_ytm", None)
         self._current_itag: int = 0
+        self._local_scanner = None
+
+        # Initialize local scanner if available
+        try:
+            from sonictune.library.local_scanner import LocalScanner
+            self._local_scanner = LocalScanner()
+        except ImportError as e:
+            log.warning("local_scanner_init_failed", error=str(e))
+        except Exception as e:
+            log.warning("local_scanner_init_failed", error=str(e))
 
         # Wire player events to signals
         self._player.add_listener(self._on_player_event)
@@ -487,6 +456,20 @@ class DaemonProxy(QObject):
                 self.libraryPlaylistsError.emit(str(e))
         asyncio.create_task(_do())
 
+    @Slot(str)
+    def getPlaylistTracks(self, playlist_id: str) -> None:
+        async def _do():
+            try:
+                playlist = await self._library.get_playlist(playlist_id, limit=200)
+                tracks = playlist.get("tracks", [])
+                self.playlistTracksReceived.emit(
+                    playlist_id,
+                    [self._track_to_dict(Track.from_ytmusic(t)) for t in tracks],
+                )
+            except Exception as e:
+                self.playlistTracksError.emit(playlist_id, str(e))
+        asyncio.create_task(_do())
+
     def _album_to_dict(self, a: Any) -> dict[str, Any]:
         return {
             "browse_id": a.browse_id,
@@ -665,21 +648,62 @@ class DaemonProxy(QObject):
                 self.audioCacheSizeError.emit(str(e))
         asyncio.create_task(_do())
 
-    # === History reporting ===
+    # === Local Library ===
 
-    @Slot(result=bool)
-    def reportHistory(self) -> bool:
-        """Whether plays are being reported to YouTube Music history."""
-        return bool(self._config.ui.report_history)
+    @Slot(str)
+    def scanLocalLibrary(self, path: str) -> None:
+        """Scan a local directory for audio files."""
+        if not self._local_scanner:
+            self.localTracksError.emit("Local scanner not available")
+            return
 
-    @Slot(bool)
-    def setReportHistory(self, enabled: bool) -> None:
-        """Enable/disable YT Music history reporting and persist the choice."""
-        self._config.ui.report_history = bool(enabled)
-        try:
-            self._persist_config()
-        except Exception as e:
-            log.warning("config.persist_failed", error=str(e))
+        async def _do():
+            try:
+                # Notify UI that scanning is starting
+                self.localScanProgress.emit(path, 0, 0)
+
+                # Scan the directory
+                tracks = await self._local_scanner.scan_directory(path)
+                
+                # Convert tracks to QML-friendly format
+                qml_tracks = []
+                for track in tracks:
+                    qml_tracks.append({
+                        "id": track.get("id", ""),
+                        "title": track.get("title", ""),
+                        "artist": track.get("artist", "Unknown Artist"),
+                        "album": track.get("album", "Unknown Album"),
+                        "duration_ms": track.get("duration_ms", 0),
+                        "thumbnail_url": "",  # Local tracks don't have thumbnails initially
+                        "path": track.get("path", ""),
+                        "uri": track.get("uri", ""),
+                        "is_local": True,
+                        "track_number": track.get("track_number", 0),
+                        "disc_number": track.get("disc_number", 0),
+                        "genre": track.get("genre", ""),
+                        "year": track.get("year", 0),
+                    })
+                
+                self.localTracksReceived.emit(qml_tracks)
+                self.localScanCompleted.emit()
+            except Exception as e:
+                self.localTracksError.emit(str(e))
+
+        asyncio.create_task(_do())
+
+    @Slot(str, result=bool)
+    def playLocalTrack(self, track_id: str) -> bool:
+        """Play a local track by ID."""
+        # TODO: Implement local track playback
+        self.error.emit("Local track playback not yet implemented")
+        return False
+
+    @Slot(str, bool, result=bool)
+    def addLocalTrackToQueue(self, track_id: str, play_next: bool) -> bool:
+        """Add a local track to the queue."""
+        # TODO: Implement local track queueing
+        self.error.emit("Local track queueing not yet implemented")
+        return False
 
     def _persist_config(self) -> None:
         """Write current config back to disk as TOML."""

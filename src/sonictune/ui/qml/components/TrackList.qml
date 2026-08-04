@@ -23,16 +23,19 @@ Rectangle {
     implicitHeight: list.contentHeight
 
     property var tracks: []
-    property string currentVideoId: ""
+    property string currentTrackId: ""
     property bool showEmptyState: true
     property string emptyMessage: qsTr("Nothing here yet")
     property string emptyIcon: "note"
     property string emptyAction: ""
 
     readonly property bool empty: !root.tracks || root.tracks.length === 0
+    readonly property bool hasLocalTracks: root.tracks.some(track => track.is_local)
 
-    signal playTrack(string videoId)
-    signal addToQueue(string videoId)
+    signal playTrack(string trackId)
+    signal addToQueue(string trackId)
+    signal playLocalTrack(string trackId)
+    signal addLocalTrackToQueue(string trackId)
     signal emptyActionClicked()
 
 ListView {
@@ -59,7 +62,19 @@ ListView {
 
             width: list.width
             height: 56
-            readonly property bool isCurrent: modelData.video_id === root.currentVideoId
+            readonly property bool isCurrent: {
+                if (root.hasLocalTracks) {
+                    return row.modelData.id === root.currentTrackId
+                } else {
+                    return row.modelData.video_id === root.currentTrackId
+                }
+            }
+            readonly property string trackId: root.hasLocalTracks ? row.modelData.id : row.modelData.video_id
+            readonly property string trackThumbnail: root.hasLocalTracks ? "" : row.modelData.thumbnail_url
+            readonly property string trackTitle: row.modelData.title || qsTr("Unknown title")
+            readonly property string trackArtist: row.modelData.artist || qsTr("Unknown artist")
+            readonly property string trackAlbum: row.modelData.album || ""
+            readonly property int trackDuration: row.modelData.duration_ms || 0
             radius: Theme.radiusMd
             color: row.isCurrent
                 ? Theme.primaryContainer
@@ -114,8 +129,8 @@ ListView {
 
                     Image {
                         anchors.fill: parent
-                        source: row.modelData.thumbnail_url
-                            ? "image://art/" + encodeURIComponent(row.modelData.thumbnail_url)
+                        source: row.trackThumbnail
+                            ? "image://art/" + encodeURIComponent(row.trackThumbnail)
                             : ""
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
@@ -123,7 +138,7 @@ ListView {
 
                     Icon {
                         anchors.centerIn: parent
-                        visible: !row.modelData.thumbnail_url
+                        visible: !row.trackThumbnail
                         name: "note"
                         size: 16
                         color: Theme.onSurfaceVariant
@@ -136,7 +151,7 @@ ListView {
 
                     Text {
                         Layout.fillWidth: true
-                        text: row.modelData.title || qsTr("Unknown title")
+                        text: row.trackTitle
                         color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurface
                         font: Theme.fontBodyLarge
                         elide: Text.ElideRight
@@ -144,7 +159,7 @@ ListView {
 
                     Text {
                         Layout.fillWidth: true
-                        text: row.modelData.artist + (row.modelData.album ? "  ·  " + row.modelData.album : "")
+                        text: row.trackArtist + (row.trackAlbum ? "  ·  " + row.trackAlbum : "")
                         color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
                         font: Theme.fontBodySmall
                         elide: Text.ElideRight
@@ -152,7 +167,7 @@ ListView {
                 }
 
                 Text {
-                    text: root.formatTime(row.modelData.duration_ms || 0)
+                    text: root.formatTime(row.trackDuration)
                     color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
                     font: Theme.fontMono
                     Layout.preferredWidth: 44
@@ -169,7 +184,9 @@ ListView {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.addToQueue(row.modelData.video_id)
+                        onClicked: root.hasLocalTracks
+                            ? root.addLocalTrackToQueue(row.trackId)
+                            : root.addToQueue(row.trackId)
                     }
                 }
             }
@@ -182,7 +199,9 @@ ListView {
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: function(mouse) {
                     if (mouse.button === Qt.LeftButton) {
-                        root.playTrack(row.modelData.video_id)
+                        root.hasLocalTracks
+                            ? root.playLocalTrack(row.trackId)
+                            : root.playTrack(row.trackId)
                     } else if (mouse.button === Qt.RightButton) {
                         contextMenu.popup()
                     }
@@ -193,11 +212,15 @@ ListView {
                 id: contextMenu
                 MenuItem {
                     text: qsTr("Play next")
-                    onTriggered: Daemon.addToQueue(row.modelData.video_id, true)
+                    onTriggered: root.hasLocalTracks
+                        ? Daemon.addLocalTrackToQueue(row.trackId, true)
+                        : Daemon.addToQueue(row.trackId, true)
                 }
                 MenuItem {
                     text: qsTr("Add to queue")
-                    onTriggered: Daemon.addToQueue(row.modelData.video_id, false)
+                    onTriggered: root.hasLocalTracks
+                        ? Daemon.addLocalTrackToQueue(row.trackId, false)
+                        : Daemon.addToQueue(row.trackId, false)
                 }
             }
         }
