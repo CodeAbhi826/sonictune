@@ -121,7 +121,7 @@ calls. MPRIS remains as the only D-Bus surface (desktop integration).
 - [ ] Smart playlists (auto-generated based on history)
 - [ ] ReplayGain for downloaded files
 - [ ] Lyrics offset adjustment UI
-- [ ] Full theming system (Material 3 presets, custom accent colors, ArchiveTune preset)
+- [ ] Full theming system (Material 3 presets, custom accent colors, brand preset)
 - [ ] i18n (gettext, initial translations: es, de, fr, ja)
 - [ ] Keyboard shortcuts editor
 
