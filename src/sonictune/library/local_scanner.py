@@ -470,27 +470,29 @@ class LocalScanner:
         return cls._build_palette(fallback_rgb)
 
 
-async def extract_palette_from_url(image_url: str, cache_dir: Path) -> MaterialPalette:
-    """Download image from URL and extract palette."""
-    try:
-        import aiohttp
-        cache_dir.mkdir(parents=True, exist_ok=True)
+    @classmethod
+    async def extract_palette_from_url(cls, image_url: str, cache_dir: Path) -> "MaterialPalette":
+        """Download image from URL and extract palette."""
+        try:
+            import aiohttp
 
-        filename = image_url.split("/")[-1].split("?")[0]
-        if not filename or "." not in filename:
-            filename = "album_art.jpg"
-        cache_path = cache_dir / filename
+            cache_dir.mkdir(parents=True, exist_ok=True)
 
-        if not cache_path.exists():
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as resp:
-                    if resp.status == 200:
-                        data = await resp.read()
-                        cache_path.write_bytes(data)
-                    else:
-                        return LocalScanner._fallback_palette()
+            filename = image_url.split("/")[-1].split("?")[0]
+            if not filename or "." not in filename:
+                filename = "album_art.jpg"
+            cache_path = cache_dir / filename
 
-        return await LocalScanner.extract_palette(cache_path)
-    except Exception as e:
-        log.error("palette_from_url_failed", url=image_url, error=str(e))
-        return LocalScanner._fallback_palette()
+            if not cache_path.exists():
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(image_url) as resp:
+                        if resp.status == 200:
+                            data = await resp.read()
+                            cache_path.write_bytes(data)
+                        else:
+                            return cls._fallback_palette()
+
+            return await cls.extract_palette(cache_path)
+        except Exception as e:
+            log.error("palette_from_url_failed", url=image_url, error=str(e))
+            return cls._fallback_palette()

@@ -23,11 +23,42 @@ log = structlog.get_logger()
 class DaemonProxy(QObject):
     """Direct Python proxy — QML calls this, it calls services directly."""
 
+    connectionChanged = Signal(bool)
+
     # Local library signals
     localTracksReceived = Signal(list)
     localTracksError = Signal(str)
     localScanProgress = Signal(str, int, int)
     localScanCompleted = Signal()
+
+    # Player signals
+    stateChanged = Signal(str)
+    positionChanged = Signal(int, int)
+    trackChanged = Signal(dict)
+    queueChanged = Signal(list)
+    authChanged = Signal(bool)
+    errorOccurred = Signal(str)
+    error = errorOccurred
+    audioQualityChanged = Signal(str)
+    currentAudioItagChanged = Signal(int)
+
+    # API response signals
+    statusReceived = Signal(dict)
+    queueReceived = Signal(list)
+    searchCompleted = Signal(list)
+    searchError = Signal(str)
+    searchSongsCompleted = Signal(list)
+    librarySongsReceived = Signal(list)
+    libraryAlbumsReceived = Signal(list)
+    libraryPlaylistsReceived = Signal(list)
+    startOAuthCompleted = Signal(str)
+    pollOAuthCompleted = Signal(str)
+    importCookiesCompleted = Signal(bool)
+    statsReceived = Signal(dict)
+    syncLibraryCompleted = Signal()
+    searchHistoryReceived = Signal(list)
+    lyricsReceived = Signal(dict)
+    homeReceived = Signal(list)
 
     def __init__(
         self,
@@ -116,7 +147,7 @@ class DaemonProxy(QObject):
             # Auto-advance + stats recording
             asyncio.create_task(self._on_end_reached(data))
         elif event == PlayerEvent.ERROR:
-            self.error.emit(str(data.get("error", "Playback error")))
+            self.errorOccurred.emit(str(data.get("error", "Playback error")))
 
     async def _on_end_reached(self, data: dict[str, Any]) -> None:
         """Handle end-of-track: advance queue, record stats, play next."""
@@ -215,7 +246,7 @@ class DaemonProxy(QObject):
                 await self._queue.add_track(track)
                 await self._play_track(track)
             except Exception as e:
-                self.error.emit(str(e))
+                self.errorOccurred.emit(str(e))
         asyncio.create_task(_do())
 
     # === Audio quality ===
@@ -268,20 +299,20 @@ class DaemonProxy(QObject):
             try:
                 track = await self._library.get_track(video_id)
                 await self._queue.add_track(track, at_end=not play_next)
-                self.queueChanged.emit()
+                self.queueChanged.emit(self._queue.get_status())
             except Exception as e:
-                self.error.emit(str(e))
+                self.errorOccurred.emit(str(e))
         asyncio.create_task(_do())
 
     @Slot(int)
     def removeFromQueue(self, index: int) -> None:
         asyncio.create_task(self._queue.remove_at(index))
-        self.queueChanged.emit()
+        self.queueChanged.emit(self._queue.get_status())
 
     @Slot()
     def clearQueue(self) -> None:
         asyncio.create_task(self._queue.clear())
-        self.queueChanged.emit()
+        self.queueChanged.emit(self._queue.get_status())
 
     @Slot(int)
     def jumpTo(self, index: int) -> None:
@@ -294,12 +325,12 @@ class DaemonProxy(QObject):
     @Slot(bool)
     def setShuffle(self, enabled: bool) -> None:
         asyncio.create_task(self._queue.set_shuffle(enabled))
-        self.queueChanged.emit()
+        self.queueChanged.emit(self._queue.get_status())
 
     @Slot(str)
     def setRepeat(self, mode: str) -> None:
         asyncio.create_task(self._queue.set_repeat(RepeatMode(mode)))
-        self.queueChanged.emit()
+        self.queueChanged.emit(self._queue.get_status())
 
     @Slot()
     def getQueue(self) -> None:
@@ -573,6 +604,17 @@ class DaemonProxy(QObject):
                 self.statsError.emit(str(e))
         asyncio.create_task(_do())
 
+    # === Report history ===
+
+    @Slot(result=bool)
+    def reportHistory(self) -> bool:
+        return self._config.ui.report_history
+
+    @Slot(bool)
+    def setReportHistory(self, value: bool) -> None:
+        self._config.ui.report_history = value
+        self._persist_config()
+
     # === Search history ===
 
     @Slot(str, int)
@@ -695,21 +737,24 @@ class DaemonProxy(QObject):
     def playLocalTrack(self, track_id: str) -> bool:
         """Play a local track by ID."""
         # TODO: Implement local track playback
-        self.error.emit("Local track playback not yet implemented")
+        self.errorOccurred.emit("Local track playback not yet implemented")
         return False
 
     @Slot(str, bool, result=bool)
     def addLocalTrackToQueue(self, track_id: str, play_next: bool) -> bool:
         """Add a local track to the queue."""
         # TODO: Implement local track queueing
-        self.error.emit("Local track queueing not yet implemented")
+        self.errorOccurred.emit("Local track queueing not yet implemented")
         return False
 
     def _persist_config(self) -> None:
         """Write current config back to disk as TOML."""
         import re
 
-        path = self._config.config_dir / "config.toml"
+        config_dir = getattr(self._config, "config_dir", None)
+        if config_dir is None:
+            return
+        path = config_dir / "config.toml"
         if not path.exists():
             return
         try:
@@ -809,7 +854,7 @@ class DaemonProxy(QObject):
             await self._player.load_url(url, info)
         except Exception as e:
             log.exception("proxy.play_failed", video_id=track.video_id)
-            self.error.emit(str(e))
+            self.errorOccurred.emit(str(e))
             self.errorOccurred.emit(str(e))
 
 

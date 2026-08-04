@@ -2,7 +2,14 @@
 
 import pytest
 from PySide6.QtCore import QUrl
-from PySide6.QtQuickTest import QQuickTest
+
+try:
+    from PySide6.QtQuickTest import QtQuickTest as QQuickTest
+except ImportError:
+    QQuickTest = None
+
+if QQuickTest is None:
+    pytest.skip("QtQuickTest not available in this PySide6 build", allow_module_level=True)
 
 
 class TestSyncedLyricsView(QQuickTest):

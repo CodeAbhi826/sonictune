@@ -132,12 +132,14 @@ Item {
                 wrapMode: Text.Wrap
                 
                 // Smooth transitions
-                Behavior on color {
-                    ColorAnimation { duration: Theme.durFast }
-                }
-                Behavior on font {
-                    FontAnimation { duration: Theme.durFast }
-                }
+Behavior on color {
+    enabled: !Theme.reducedMotion
+    ColorAnimation { duration: Theme.durFast }
+}
+Behavior on font {
+    enabled: !Theme.reducedMotion
+    FontAnimation { duration: Theme.durFast }
+}
             }
             
             // Auto-scroll to current line
