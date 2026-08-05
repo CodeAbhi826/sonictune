@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased] — 2026-08-05 (Part 1: boot blockers)
+
+### Added
+- `LastFmConfig`, `SponsorBlockConfig` dataclasses + `[lastfm]`/`[sponsorblock]` TOML sections in `config.py` (Bug A); `UIConfig.dynamic_theme_enabled` for Material You.
+- `_palette_to_qml_dict()` in `app.py`: serializes the `MaterialPalette` dataclass into a camelCase dict so `dynamicPaletteChanged` actually reaches QML (was silently dropped as `{}`).
+
+### Fixed
+- **App no longer crashes at boot** (Bug A): config now exposes `lastfm`/`sponsorblock`/`ui.dynamic_theme_enabled` used by `app.py`.
+- **Theme.qml QML parse failure** (Bug B): all `on*` color tokens renamed to `fg*` across `Theme.qml`, `Theme.py`, and every QML file (~200 usages) — `error`/`onError` collision gone, `Theme.qml` now compiles (`Status.Ready`), app reaches `qml_ready`.
+- **`StackView.Immediate` enum scope** (Bug G): instance-form `stackView.Immediate` in `Router.qml`/`NavRail.qml`.
+- **Shortcut wiring crash**: removed Python `ShortcutManager` duplicate (QtWidgets `QShortcut` is unreliable on a QQuickWindow and referenced missing `DaemonProxy` methods); QML-native `Shortcut` items in `main.qml` now handle all 9 shortcuts, with Ctrl+L/Ctrl+Q/Ctrl+F toggling drawer/Search correctly.
+- **Tray icon fallback** (Bug J): `tray.py` falls back to `data/org.sonicTune.svg` when `QIcon.fromTheme` returns null.
+- **Color extractor call site** (Bug A): `extract` → `extract_palette` (async classmethod, awaited correctly).
+- Stale `tests/test_e2e.py` references in `docs/BUG_REPORT.md` → `tests/test_app.py`; `AGENTS.md` changelog path pinned to `docs/CHANGELOG.md` (Bug K).
+
+### Changed
+- Renamed `MaterialPalette` fields `on_*` → `fg_*` in `color_extractor.py`/`local_scanner.py` and `Theme.py` mirrors; `tests/test_theme.py`/`test_color_extractor.py` updated.
+
+### Verified (all 6 audit checks)
+- Config import OK; `Theme.qml` `Status.Ready`; app boots to `app.qml_ready`; `pytest tests/` → **216 passed, 4 skipped**; `pyside6-qmllint Theme.qml` exit 0; zero `Theme.on[A-Z]` remain.
+
+---
+
 ## [Unreleased] — 2026-08-05 (Audit fix pass)
 
 ### Added
