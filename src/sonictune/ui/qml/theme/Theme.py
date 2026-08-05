@@ -21,7 +21,7 @@ class Theme:
 
     # MATERIAL 3 DARK SURFACES
     background = "#0F0F0F"
-    on_background = "#FFFFFF"
+    on_background = "#E6E1E5"
     surface = "#1C1B1F"
     surface_dim = "#141218"
     surface_bright = "#3B383E"
@@ -31,7 +31,7 @@ class Theme:
     surface_container_high = "#2B2930"
     surface_container_highest = "#36343B"
     surface_variant = "#49454F"
-    on_surface = "#E6E0E9"
+    on_surface = "#E6E1E5"
     on_surface_variant = "#CAC4D0"
 
     # PRIMARY
@@ -51,7 +51,7 @@ class Theme:
     tertiary = "#EFB8C8"
     on_tertiary = "#492532"
     tertiary_container = "#633B48"
-    on_tertiary_container = "#FFD9E3"
+    on_tertiary_container = "#FFD8E4"
 
     # ERROR
     error = "#F2B8B5"

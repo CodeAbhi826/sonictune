@@ -1,20 +1,23 @@
-import pytest
 import asyncio
-import tracemalloc
-import gc
-from unittest.mock import MagicMock, patch, AsyncMock
 import os
-import time
 import sys
+import time
+import tracemalloc
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
-from sonictune.player.queue import QueueManager, RepeatMode
 from sonictune.library.models import Track
-from sonictune.player.mpv_player import MpvPlayer, PlayerEvent
-from sonictune.ui.daemon_proxy import DaemonProxy
-from sonictune.ui.imageprovider import ArtImageProvider
-from sonictune.config import AudioConfig
+from sonictune.player.queue import QueueManager, RepeatMode
+
+mpv = pytest.importorskip("mpv")
+from sonictune.config import AudioConfig  # noqa: E402
+from sonictune.player.mpv_player import MpvPlayer, PlayerEvent  # noqa: E402
+from sonictune.ui.daemon_proxy import DaemonProxy  # noqa: E402
+from sonictune.ui.imageprovider import ArtImageProvider  # noqa: E402
+
 
 # ==============================================================================
 # MOCK FIXTURES
@@ -111,7 +114,6 @@ async def test_mpv_prefetch_logic(
     mpv_mock, duration, current_pos, should_prefetch
 ):
     mock_queue = MagicMock()
-    mock_ytm = MagicMock()
     mock_library = MagicMock()
     proxy = DaemonProxy(
         mpv_mock,          # player
@@ -129,32 +131,32 @@ async def test_mpv_prefetch_logic(
     proxy._mpv = mpv_mock
     mpv_mock.duration = duration
     mpv_mock.playback_time = current_pos
-    
+
     # Set up mock current track on the player
     mock_track = MagicMock()
     mock_track.video_id = "current_video"
     mpv_mock.current_track = mock_track
-    
+
     # Set up mock queue to return a next track
     next_track_mock = MagicMock()
     next_track_mock.video_id = "next_video_id"
     mock_queue.next_track.return_value = next_track_mock
-    
+
     # Initialize proxy's internal state
     proxy._url_cache = {}
     proxy._config = MagicMock()
     proxy._config.audio = MagicMock()
     proxy._config.audio.itag = 251
-    
+
     # Simulate the POSITION_CHANGED signal via the actual event handler
     proxy._on_player_event(
         PlayerEvent.POSITION_CHANGED,
         {"position_ms": int(current_pos * 1000), "duration_ms": int(duration * 1000)}
     )
-    
+
     # The prefetch is scheduled as an asyncio task; yield so it can run
     await asyncio.sleep(0.01)
-    
+
     # The prefetch logic should call queue.next_track() when conditions are met
     if should_prefetch:
         mock_queue.next_track.assert_called()
@@ -198,8 +200,7 @@ async def test_mpv_referrer_header_injection():
 )
 def test_stbutton_textmetrics(text, min_expected_width, qapp):
     # This test verifies the fix for the character-count estimation bug
-    from PySide6.QtGui import QFontMetrics
-    from PySide6.QtGui import QFont
+    from PySide6.QtGui import QFont, QFontMetrics
 
     font = QFont("Roboto", 12)
     metrics = QFontMetrics(font)
@@ -212,7 +213,7 @@ def test_stbutton_textmetrics(text, min_expected_width, qapp):
 async def test_queue_drawer_memory_leak(qapp):
     """Verifies the fix for connect/disconnect memory leaks in QueueDrawer."""
     from PySide6.QtCore import QObject, Signal
-    from sonictune.ui.daemon_proxy import DaemonProxy
+
 
     # Create a mock Daemon with signals
     class MockDaemon(QObject):
@@ -225,7 +226,6 @@ async def test_queue_drawer_memory_leak(qapp):
 
     # Simulate opening/closing the drawer 100 times
     # In the fixed code, declarative Connections prevent handler accumulation
-    handler_count = 0
     for _ in range(100):
         daemon.queueReceived.connect(lambda x: None)
         daemon.statusReceived.connect(lambda x: None)

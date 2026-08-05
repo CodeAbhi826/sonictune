@@ -89,7 +89,7 @@ Item {
                 break
             case "repeatOne":
                 loopArrow(ctx)
-                ctx.font = "bold " + (10) + "px sans-serif"
+                ctx.font = "bold " + (10) + "px " + Theme.fontFamilyMono
                 ctx.textAlign = "center"
                 ctx.textBaseline = "middle"
                 ctx.fillText("1", 12, 12.5)

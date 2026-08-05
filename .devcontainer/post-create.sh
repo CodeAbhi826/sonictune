@@ -19,9 +19,11 @@ pip install -e .
 pip install pytest-playwright pytest-qt
 playwright install
 
-# Start Xvfb in the background
-Xvfb :1 -screen 0 1024x768x24 &
+# Persist DISPLAY for all interactive shells (plain `export` here would die
+# with this script; profile.d survives across execs and restarts).
+sudo tee /etc/profile.d/sonictune-dev.sh >/dev/null <<'EOF'
 export DISPLAY=:1
+EOF
 
 # Verify setup
 echo "Dev container setup complete!"

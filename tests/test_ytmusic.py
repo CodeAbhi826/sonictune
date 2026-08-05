@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import ModuleType
+from typing import ClassVar
 from unittest.mock import patch
 
 from sonictune.library.ytmusic import YTMusicLibrary
@@ -163,8 +164,8 @@ def test_ytmusicapi_exception_falls_back_to_ytdlp() -> None:
     assert _FakeYDL.captured_format == "251/140/bestaudio/best"
 
 
-def test_ytmusicapi_both_fail_raises() -> None:
-    """ytmusicapi returns nothing AND yt-dlp returns nothing -> RuntimeError."""
+def test_ytmusicapi_both_fail_returns_none() -> None:
+    """ytmusicapi returns nothing AND yt-dlp fails every attempt -> None."""
     with TemporaryDirectory() as tmp:
         lib = YTMusicLibrary(oauth=None, cookies_path=Path(tmp) / "cook.txt")
         lib._ytm = _FakeYTM({"streamingData": {}})
@@ -186,12 +187,74 @@ def test_ytmusicapi_both_fail_raises() -> None:
         mod.YoutubeDL = _EmptyYDL
         with patch("asyncio.to_thread", side_effect=_fake_to_thread), \
              patch.dict(sys.modules, {"yt_dlp": mod}):
-            try:
-                _run(lib.get_stream_url("vidFFF", 141))
-                raised = False
-            except RuntimeError:
-                raised = True
-    assert raised
+            url = _run(lib.get_stream_url("vidFFF", 141))
+    assert url is None
+
+
+class _EscalatingYDL:
+    """Fails without flags, succeeds once ``force_ipv4`` is set."""
+
+    captured_opts: ClassVar[list[dict]] = []
+
+    def __init__(self, opts: dict):
+        _EscalatingYDL.captured_opts.append(opts)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def extract_info(self, url: str, download: bool = True):
+        if self.captured_opts[-1].get("force_ipv4"):
+            return {"url": "https://stream/after-force-ipv4"}
+        return {}
+
+
+def test_ytdlp_retry_escalates_flags_then_succeeds() -> None:
+    """A track that only resolves with --force-ipv4 is retried, not skipped."""
+    _EscalatingYDL.captured_opts = []
+    with TemporaryDirectory() as tmp:
+        lib = YTMusicLibrary(oauth=None, cookies_path=Path(tmp) / "cook.txt")
+        lib._ytm = _FakeYTM({"streamingData": {}})
+
+        mod = ModuleType("yt_dlp")
+        mod.YoutubeDL = _EscalatingYDL
+        with patch("asyncio.to_thread", side_effect=_fake_to_thread), \
+             patch.dict(sys.modules, {"yt_dlp": mod}):
+            url = _run(lib.get_stream_url("vidESC", 141))
+    assert url == "https://stream/after-force-ipv4"
+    assert _EscalatingYDL.captured_opts[0].get("force_ipv4") is not True
+    assert _EscalatingYDL.captured_opts[1].get("force_ipv4") is True
+    assert _EscalatingYDL.captured_opts[1].get("geo_bypass") is not True
+
+
+def test_ytdlp_exhausted_retries_return_none() -> None:
+    """Giving up on a dead track returns None (never raises) after 3 attempts."""
+    _EscalatingYDL.captured_opts = []
+    with TemporaryDirectory() as tmp:
+        lib = YTMusicLibrary(oauth=None, cookies_path=Path(tmp) / "cook.txt")
+        lib._ytm = _FakeYTM({"streamingData": {}})
+
+        class _DeadYDL:
+            def __init__(self, opts):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def extract_info(self, url, download=True):
+                return {}
+
+        mod = ModuleType("yt_dlp")
+        mod.YoutubeDL = _DeadYDL
+        with patch("asyncio.to_thread", side_effect=_fake_to_thread), \
+             patch.dict(sys.modules, {"yt_dlp": mod}):
+            url = _run(lib.get_stream_url("vidDEAD", 141))
+    assert url is None
 
 
 def test_url_locks_bounded() -> None:

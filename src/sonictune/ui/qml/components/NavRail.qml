@@ -20,12 +20,12 @@ Rectangle {
     signal navigate(string pageUrl)
 
     readonly property var items: [
-        { name: "home",     url: "qrc:/qml/pages/HomePage.qml",     icon: "home",     label: qsTr("Home") },
-        { name: "search",   url: "qrc:/qml/pages/SearchPage.qml",   icon: "search",   label: qsTr("Search") },
-        { name: "library",  url: "qrc:/qml/pages/LibraryPage.qml",  icon: "library",  label: qsTr("Library") },
-        { name: "local",    url: "qrc:/qml/pages/LocalLibraryPage.qml", icon: "musicNote", label: qsTr("Local") },
-        { name: "stats",    url: "qrc:/qml/pages/StatsPage.qml",    icon: "stats",    label: qsTr("Stats") },
-        { name: "settings", url: "qrc:/qml/pages/SettingsPage.qml", icon: "settings", label: qsTr("Settings") }
+        { name: "home",     url: "../pages/HomePage.qml",     icon: "home",     label: qsTr("Home") },
+        { name: "search",   url: "../pages/SearchPage.qml",   icon: "search",   label: qsTr("Search") },
+        { name: "library",  url: "../pages/LibraryPage.qml",  icon: "library",  label: qsTr("Library") },
+        { name: "local",    url: "../pages/LocalLibraryPage.qml", icon: "musicNote", label: qsTr("Local") },
+        { name: "stats",    url: "../pages/StatsPage.qml",    icon: "stats",    label: qsTr("Stats") },
+        { name: "settings", url: "../pages/SettingsPage.qml", icon: "settings", label: qsTr("Settings") }
     ]
 
     ColumnLayout {

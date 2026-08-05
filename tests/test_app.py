@@ -581,3 +581,73 @@ async def test_history_not_double_reported_on_end() -> None:
     )
     await SonicTuneApp._on_player_event(app, PlayerEvent.END_REACHED, {"track": track})
     assert lib.reported == ["vid123"]
+
+
+# ---- Clean shutdown (C1) ----------------------------------------------------
+
+
+class _FakeShutdownService:
+    def __init__(self) -> None:
+        self.closed = False
+        self.shutdown_called = False
+
+    async def close(self) -> None:
+        self.closed = True
+
+    async def shutdown(self) -> None:
+        self.shutdown_called = True
+
+
+async def _make_shutdown_app() -> Any:
+    from sonictune.app import SonicTuneApp
+
+    loop = asyncio.get_running_loop()
+    player = _FakeShutdownService()
+    library = _FakeShutdownService()
+    db = _FakeShutdownService()
+    app = type(
+        "App",
+        (),
+        {
+            "_shutdown_started": False,
+            "_shutdown_task": None,
+            "loop": loop,
+            "player": player,
+            "library": library,
+            "db": db,
+            "discord": None,
+            "mpris": None,
+        },
+    )()
+    # Bind the real shutdown wiring to the fake app object.
+    app._on_about_to_quit = SonicTuneApp._on_about_to_quit.__get__(app, type(app))
+    app.shutdown = SonicTuneApp.shutdown.__get__(app, type(app))
+    return app, player, library, db
+
+
+async def test_about_to_quit_schedules_clean_shutdown() -> None:
+    """aboutToQuit fires -> _on_about_to_quit schedules shutdown() on the loop."""
+    app, player, library, db = await _make_shutdown_app()
+    app._on_about_to_quit()
+    assert app._shutdown_task is not None
+    await app._shutdown_task
+    assert app._shutdown_started is True
+    assert player.shutdown_called and library.closed and db.closed
+
+
+async def test_about_to_quit_not_double_scheduled() -> None:
+    """A second aboutToQuit emission does not schedule shutdown twice."""
+    app, *_ = await _make_shutdown_app()
+    app._on_about_to_quit()
+    first = app._shutdown_task
+    app._on_about_to_quit()
+    assert app._shutdown_task is first
+
+
+async def test_shutdown_idempotent() -> None:
+    """shutdown() only runs its cleanup once."""
+    app, player, *_ = await _make_shutdown_app()
+    await app.shutdown()
+    await app.shutdown()
+    assert app._shutdown_started is True
+    assert player.shutdown_called is True

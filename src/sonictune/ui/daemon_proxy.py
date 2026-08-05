@@ -42,6 +42,16 @@ class DaemonProxy(QObject):
     audioQualityChanged = Signal(str)
     currentAudioItagChanged = Signal(int)
 
+    # Sleep timer signals
+    sleepTimerModeChanged = Signal(str)
+    sleepTimerRemainingChanged = Signal(str)
+
+    # SponsorBlock signals
+    sponsorBlockSkipped = Signal(int, int)  # position_ms, skip_to_ms
+
+    # Material You signals
+    dynamicPaletteChanged = Signal(dict)  # MaterialPalette as dict
+
     # API response signals
     statusReceived = Signal(dict)
     queueReceived = Signal(list)
@@ -58,7 +68,25 @@ class DaemonProxy(QObject):
     syncLibraryCompleted = Signal()
     searchHistoryReceived = Signal(list)
     lyricsReceived = Signal(dict)
+    lyricsError = Signal(str)
     homeReceived = Signal(list)
+    homeError = Signal(str)
+
+    # API/error signals (emitted in _do() boundaries below)
+    searchSongsError = Signal(str)
+    librarySongsError = Signal(str)
+    libraryAlbumsError = Signal(str)
+    libraryPlaylistsError = Signal(str)
+    playlistTracksReceived = Signal(str, list)
+    playlistTracksError = Signal(str, str)
+    startOAuthError = Signal(str)
+    pollOAuthError = Signal(str)
+    statsError = Signal(str)
+    syncLibraryError = Signal(str)
+    searchHistoryError = Signal(str)
+    audioCacheSizeReceived = Signal(float)
+    audioCacheSizeError = Signal(str)
+    audioCacheCleared = Signal()
 
     def __init__(
         self,
@@ -73,6 +101,9 @@ class DaemonProxy(QObject):
         db: Any,
         sync: Any,
         config: Any,
+        sleep_timer: Any = None,
+        sponsorblock: Any = None,
+        color_extractor: Any = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -87,6 +118,9 @@ class DaemonProxy(QObject):
         self._db = db
         self._sync = sync
         self._config = config
+        self._sleep_timer = sleep_timer
+        self._sponsorblock = sponsorblock
+        self._color_extractor = color_extractor
         self._connected = True  # always true — we're in the same process
         self._url_cache: dict[str, str] = {}
         self._prefetch_task: asyncio.Task | None = None
@@ -306,13 +340,17 @@ class DaemonProxy(QObject):
 
     @Slot(int)
     def removeFromQueue(self, index: int) -> None:
-        asyncio.create_task(self._queue.remove_at(index))
-        self.queueChanged.emit(self._queue.get_status())
+        async def _do():
+            await self._queue.remove_at(index)
+            self.queueChanged.emit(self._queue.get_status())
+        asyncio.create_task(_do())
 
     @Slot()
     def clearQueue(self) -> None:
-        asyncio.create_task(self._queue.clear())
-        self.queueChanged.emit(self._queue.get_status())
+        async def _do():
+            await self._queue.clear()
+            self.queueChanged.emit(self._queue.get_status())
+        asyncio.create_task(_do())
 
     @Slot(int)
     def jumpTo(self, index: int) -> None:
@@ -324,17 +362,76 @@ class DaemonProxy(QObject):
 
     @Slot(bool)
     def setShuffle(self, enabled: bool) -> None:
-        asyncio.create_task(self._queue.set_shuffle(enabled))
-        self.queueChanged.emit(self._queue.get_status())
+        async def _do():
+            await self._queue.set_shuffle(enabled)
+            self.queueChanged.emit(self._queue.get_status())
+        asyncio.create_task(_do())
 
     @Slot(str)
     def setRepeat(self, mode: str) -> None:
-        asyncio.create_task(self._queue.set_repeat(RepeatMode(mode)))
-        self.queueChanged.emit(self._queue.get_status())
+        async def _do():
+            await self._queue.set_repeat(RepeatMode(mode))
+            self.queueChanged.emit(self._queue.get_status())
+        asyncio.create_task(_do())
 
     @Slot()
     def getQueue(self) -> None:
         self.queueReceived.emit(self._queue.get_status())
+
+    # === Sleep Timer ===
+
+    @Slot(str)
+    def setSleepTimerMode(self, mode: str) -> None:
+        """Set sleep timer mode (off, 5min, 15min, 30min, 45min, 60min, end_of_track)."""
+        if not self._sleep_timer:
+            return
+        from sonictune.player.sleep_timer import SleepTimerMode
+        try:
+            self._sleep_timer.set_mode(SleepTimerMode(mode))
+            self.sleepTimerModeChanged.emit(mode)
+            self.sleepTimerRemainingChanged.emit(self._sleep_timer.get_remaining_text())
+        except ValueError:
+            log.warning("sleep_timer.invalid_mode", mode=mode)
+
+    @Slot(result=str)
+    def getSleepTimerMode(self) -> str:
+        """Get current sleep timer mode."""
+        if not self._sleep_timer:
+            return "off"
+        return self._sleep_timer._mode.value
+
+    @Slot(result=str)
+    def getSleepTimerRemaining(self) -> str:
+        """Get remaining time as formatted string (e.g., "5:00")."""
+        if not self._sleep_timer:
+            return ""
+        return self._sleep_timer.get_remaining_text()
+
+    # === SponsorBlock ===
+
+    @Slot(result=bool)
+    def isSponsorBlockEnabled(self) -> bool:
+        """Check if SponsorBlock is enabled."""
+        return bool(self._sponsorblock and self._sponsorblock.enabled)
+
+    @Slot(bool)
+    def setSponsorBlockEnabled(self, enabled: bool) -> None:
+        """Enable or disable SponsorBlock."""
+        if self._sponsorblock:
+            self._sponsorblock.enabled = enabled
+
+    @Slot(result=list)
+    def getSponsorBlockCategories(self) -> list[str]:
+        """Get current SponsorBlock categories."""
+        if not self._sponsorblock:
+            return []
+        return self._sponsorblock.categories
+
+    @Slot(list)
+    def setSponsorBlockCategories(self, categories: list[str]) -> None:
+        """Set SponsorBlock categories."""
+        if self._sponsorblock:
+            self._sponsorblock.categories = categories
 
     # === Library ===
 
@@ -706,7 +803,7 @@ class DaemonProxy(QObject):
 
                 # Scan the directory
                 tracks = await self._local_scanner.scan_directory(path)
-                
+
                 # Convert tracks to QML-friendly format
                 qml_tracks = []
                 for track in tracks:
@@ -725,7 +822,7 @@ class DaemonProxy(QObject):
                         "genre": track.get("genre", ""),
                         "year": track.get("year", 0),
                     })
-                
+
                 self.localTracksReceived.emit(qml_tracks)
                 self.localScanCompleted.emit()
             except Exception as e:
@@ -843,6 +940,16 @@ class DaemonProxy(QObject):
                 url = self._url_cache.pop(track.video_id)
             else:
                 url = await self._resolve_stream_for_track(track.video_id)
+            if not url:
+                # Unresolvable (deleted/region-locked/age-gated): toast and
+                # auto-advance to the next queued track instead of stalling.
+                self.errorOccurred.emit(
+                    f"Skipped — unavailable: {getattr(track, 'title', track.video_id)}"
+                )
+                next_track = await self._queue.advance()
+                if next_track:
+                    await self._play_track(next_track)
+                return
             info = TrackInfo(
                 video_id=track.video_id,
                 title=track.title,
@@ -854,7 +961,6 @@ class DaemonProxy(QObject):
             await self._player.load_url(url, info)
         except Exception as e:
             log.exception("proxy.play_failed", video_id=track.video_id)
-            self.errorOccurred.emit(str(e))
             self.errorOccurred.emit(str(e))
 
 

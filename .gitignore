@@ -78,6 +78,8 @@ meson-private/
 # Local config (don't commit user secrets)
 config.local.toml
 *.secret
+.env
+.env.*
 
 # Qt
 *.qmlc

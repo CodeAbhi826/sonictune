@@ -38,10 +38,10 @@ calls. MPRIS remains as the only D-Bus surface (desktop integration).
 **ETA:** 2–3 weeks of focused work
 
 ### Auth
-- [x] OAuth token storage (mode 0600)
-- [x] Cookie import fallback
-- [ ] **OAuth TV device code flow** (currently stubbed — needs google-auth-oauthlib wiring)
-- [ ] OAuth token refresh (automatic before expiry)
+    - [x] OAuth token storage (mode 0600)
+    - [x] Cookie import fallback
+    - [x] OAuth TV device code flow
+    - [x] OAuth token refresh (automatic before expiry)
 - [ ] UI for OAuth flow (show user code, poll for approval) — dialog exists; pending refresh wiring
 
 ### Library
@@ -111,6 +111,9 @@ calls. MPRIS remains as the only D-Bus surface (desktop integration).
 
 - [ ] Offline cache UI (configurable size, eviction policy, per-track "downloaded" indicator)
 - [ ] Stats dashboard v2 (year recap, top genres, listening streaks, monthly trends)
+  - Note: the Stats page's **top-albums** section renders empty by design
+    (`stats/aggregator.py` returns `top_albums=[]` — no top-albums query yet).
+    Tracked here so it isn't mistaken for a UI bug during QA.
 - [ ] Discord Rich Presence (currently stubbed — needs UI for client_id config)
 - [ ] Sleep timer (with fade-out)
 - [ ] Crossfade toggle + duration slider
@@ -140,6 +143,21 @@ calls. MPRIS remains as the only D-Bus surface (desktop integration).
 - [ ] Marketing screenshots (multiple languages)
 - [ ] Website / landing page
 - [ ] Matrix room for community
+
+### Release-blocking verification passes (G3)
+
+Because SonicTune builds its own Material 3 design system instead of
+inheriting platform widgets, the following must pass before any tagged
+release — the existing `docs/BUG_REPORT.md` checks alone (single
+Arch/KDE-Wayland environment) are not sufficient:
+
+- [ ] **GNOME + Wayland** pass (spacing, contrast, tray, MPRIS controls,
+      media keys)
+- [ ] **Plain X11 session** pass (not just an XWayland fallback) — tray
+      and window sizing behave differently without compositor scaling
+- [ ] **One non-Arch distro** pass (e.g. Fedora or Ubuntu) — font and
+      package availability differ and tie directly into the bundled-font
+      gap (V3)
 
 ## Phase 5 — Future Ideas (No ETA)
 

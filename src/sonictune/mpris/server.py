@@ -304,6 +304,9 @@ class MprisPlayerInterface(ServiceInterface):
             from sonictune.player.types import TrackInfo
             itag = self._config.audio.itag if self._config else 141
             url = await self._library.get_stream_url(track.video_id, itag)
+            if not url:
+                log.warning("mpris.stream_unresolvable", video_id=track.video_id)
+                return
 
             info = TrackInfo(
                 video_id=track.video_id,

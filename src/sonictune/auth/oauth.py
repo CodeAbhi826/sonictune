@@ -14,8 +14,6 @@ The token is stored at config.oauth_path as JSON with mode 0600.
 from __future__ import annotations
 
 import asyncio
-import json
-import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,6 +21,8 @@ from typing import Any
 
 import structlog
 from ytmusicapi import OAuthCredentials, YTMusic
+
+from sonictune.auth.secure_storage import SecureTokenStorage
 
 log = structlog.get_logger()
 
@@ -43,6 +43,7 @@ class OAuthManager:
 
     def __init__(self, token_path: Path) -> None:
         self.token_path = token_path
+        self._secure_storage = SecureTokenStorage(token_path.parent)
         self._token: dict[str, Any] | None = None
         self._oauth: OAuthCredentials | None = None
         self._device_code: str | None = None
@@ -61,20 +62,15 @@ class OAuthManager:
         We now persist client_id/client_secret alongside the token (see
         save_token()) and reconstruct the OAuthCredentials object here.
         """
-        if not self.token_path.exists():
-            return
-        try:
-            raw = json.loads(self.token_path.read_text())
-        except (json.JSONDecodeError, OSError) as e:
-            log.warning("oauth.load_failed", error=str(e))
-            self._token = None
+        token_data = self._secure_storage.load_oauth_token()
+        if not token_data:
             return
 
-        if "token" in raw and "client_id" in raw:
+        if "token" in token_data and "client_id" in token_data:
             # Current format: {"client_id", "client_secret", "token": {...}}
-            self._token = raw["token"]
-            client_id = raw.get("client_id", "")
-            client_secret = raw.get("client_secret", "")
+            self._token = token_data["token"]
+            client_id = token_data.get("client_id", "")
+            client_secret = token_data.get("client_secret", "")
             if client_id and client_secret:
                 self._oauth = OAuthCredentials(
                     client_id=client_id, client_secret=client_secret
@@ -86,11 +82,8 @@ class OAuthManager:
                     "please sign in again.",
                 )
         else:
-            # Legacy format written before this fix: the whole file *is* the
-            # token dict, with no client credentials. It'll load but can't
-            # be used until the user signs in again (which will rewrite the
-            # file in the new format).
-            self._token = raw
+            # Legacy format: the whole data *is* the token dict
+            self._token = token_data
             log.warning(
                 "oauth.legacy_token_format",
                 hint="Saved token predates credential persistence — "
@@ -215,30 +208,29 @@ class OAuthManager:
         self._oauth = None
         self._pending_client_id = None
         self._pending_client_secret = None
-        try:
-            self.token_path.unlink(missing_ok=True)
-        except OSError as e:
-            log.warning("oauth.logout_failed", error=str(e))
+        success = self._secure_storage.delete_oauth_token()
+        if not success:
+            log.warning("oauth.logout_failed")
 
     def save_token(self, token: dict[str, Any]) -> None:
-        """Persist an OAuth token to disk with mode 0600.
+        """Persist an OAuth token securely (encrypted or keyring).
 
         BUGFIX: also persists client_id/client_secret alongside the token
         (in the `{"client_id", "client_secret", "token": {...}}` shape read
         by init()). Without this, a fresh process has no way to rebuild the
-        OAuthCredentials object needed to actually use the token, even
-        though the token itself is sitting right there on disk.
+        OAuthCredentials object needed to actually use the token.
         """
-        self.token_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "client_id": self._pending_client_id or "",
             "client_secret": self._pending_client_secret or "",
             "token": token,
         }
-        self.token_path.write_text(json.dumps(payload, indent=2))
-        os.chmod(self.token_path, 0o600)
-        self._token = token
-        log.info("oauth.token_saved", path=str(self.token_path))
+        success = self._secure_storage.save_oauth_token(payload)
+        if success:
+            self._token = token
+            log.info("oauth.token_saved")
+        else:
+            log.warning("oauth.token_save_failed")
 
     def build_ytmusic(self, cookies_path: Path | None = None) -> YTMusic:
         """Construct a ytmusicapi.YTMusic instance using the stored token."""

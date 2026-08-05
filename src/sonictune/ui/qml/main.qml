@@ -31,49 +31,19 @@ ApplicationWindow {
     Material.background: Theme.background
 
     property int cachedVolume: 80
-    property bool daemonConnected: Daemon.isConnected()
-
     signal miniPlayerToggleRequested()
 
     Component.onCompleted: Router.stackView = contentStack
 
     Connections {
         target: Daemon
-        function onConnectionChanged(connected) { window.daemonConnected = connected }
-        function onError(err) { appToast.show(err) }
         function onErrorOccurred(err) { appToast.show(err) }
-    }
-
-    // --- Connection banner --------------------------------------------------
-    Rectangle {
-        id: connectionBanner
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: window.daemonConnected ? 0 : 40
-        color: Theme.errorContainer
-        visible: height > 0
-        clip: true
-        Behavior on height {
-            enabled: !Theme.reducedMotion
-            NumberAnimation { duration: Theme.durNormal; easing.type: Easing.OutCubic }
-        }
-
-        RowLayout {
-            anchors.centerIn: parent
-            spacing: Theme.space2
-            Icon { name: "warning"; size: 16; color: Theme.onErrorContainer }
-            Text {
-                color: Theme.onErrorContainer
-                text: qsTr("Can't reach the daemon — retrying… start it with ./scripts/run-daemon.sh")
-                font: Theme.fontBodySmall
-            }
-        }
+        function onDynamicPaletteChanged(palette) { Theme.updateDynamicPalette(palette) }
     }
 
     // --- Main Layout: NavRail + ContentStack + NowPlayingBar ---------------
     RowLayout {
-        anchors.top: connectionBanner.bottom
+        anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -100,7 +70,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.bottomMargin: 80 // Space for NowPlayingBar
 
-            initialItem: "qrc:/qml/pages/HomePage.qml"
+            initialItem: "pages/HomePage.qml"
 
             pushEnter: Transition {
                 enabled: !Theme.reducedMotion

@@ -7,12 +7,14 @@ import logging
 import os
 import signal
 import sys
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import qasync
 import structlog
 from PySide6.QtCore import QUrl
+from PySide6.QtGui import QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtWidgets import QApplication
@@ -24,13 +26,18 @@ from sonictune.cache.audio import AudioCache
 from sonictune.config import DaemonConfig, load_config
 from sonictune.db.database import Database
 from sonictune.discord.rpc import DiscordRPC
+from sonictune.integrations.lastfm import LastFmScrobbler
 from sonictune.library.sync import LibrarySync
 from sonictune.library.ytmusic import YTMusicLibrary
 from sonictune.lyrics.lrclib import LrclibClient
 from sonictune.mpris.server import MprisServer
 from sonictune.player import get_player_class
 from sonictune.player.queue import QueueManager
+from sonictune.player.sleep_timer import SleepTimer
+from sonictune.player.sponsorblock import SponsorBlock
 from sonictune.stats.aggregator import StatsAggregator
+from sonictune.ui.color_extractor import MaterialYouExtractor
+from sonictune.ui.shortcuts import ShortcutManager
 
 if TYPE_CHECKING:
     from sonictune.player.mpv_player import MpvPlayer
@@ -58,9 +65,17 @@ class SonicTuneApp:
         os.environ.setdefault("QT_QPA_PLATFORM", "wayland;xcb")
         os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=warning")
         os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Material")
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        # Forward SIGTERM/SIGINT (terminal Ctrl+C, systemd stop) to Qt's quit,
+        # so aboutToQuit -> _on_about_to_quit -> shutdown() runs instead of the
+        # process dying abruptly with resources (SQLite WAL, MPRIS, mpv, Discord
+        # socket) left dangling.
+        signal.signal(signal.SIGTERM, lambda *_: self.app.quit())
+        signal.signal(signal.SIGINT, lambda *_: self.app.quit())
 
         self.app = QApplication(sys.argv[:1])
+        # Set window icon from SVG file in data directory
+        icon_path = Path(__file__).resolve().parents[2] / "data" / "org.sonicTune.svg"
+        self.app.setWindowIcon(QIcon(str(icon_path)))
         self.app.setApplicationName("SonicTune")
         self.app.setApplicationDisplayName("SonicTune")
         self.app.setApplicationVersion(__version__)
@@ -68,9 +83,18 @@ class SonicTuneApp:
         self.app.setDesktopFileName("org.sonicTune")
         self.app.setQuitOnLastWindowClosed(False)  # minimize to tray instead
 
+        self._shutdown_task: asyncio.Task | None = None
+        self._shutdown_started = False
+        self._lastfm_scrobbled = False
+        self._lastfm_start_time: int | None = None
+        self.app.aboutToQuit.connect(self._on_about_to_quit)
+
         # qasync event loop
         self.loop = qasync.QEventLoop(self.app)
         asyncio.set_event_loop(self.loop)
+
+        # Register bundled fonts
+        self._register_fonts()
 
         QQuickStyle.setStyle("Material")
 
@@ -86,6 +110,11 @@ class SonicTuneApp:
         self.stats: StatsAggregator | None = None
         self.mpris: MprisServer | None = None
         self.discord: DiscordRPC | None = None
+        self.lastfm: LastFmScrobbler | None = None
+        self.sleep_timer: SleepTimer | None = None
+        self.sponsorblock: SponsorBlock | None = None
+        self.color_extractor: MaterialYouExtractor | None = None
+        self.shortcuts: ShortcutManager | None = None
         self.sync: LibrarySync | None = None
 
         # QML-facing proxy
@@ -106,6 +135,17 @@ class SonicTuneApp:
             pass
         locale.setlocale(locale.LC_ALL, "C")
 
+    def _register_fonts(self) -> None:
+        """Register bundled fonts so QML can use them."""
+        try:
+            from PySide6.QtGui import QFontDatabase
+            font_dir = Path(__file__).resolve().parents[2] / "data" / "fonts"
+            for font_file in font_dir.glob("*.ttf"):
+                QFontDatabase.addApplicationFont(str(font_file))
+            log.info("fonts.registered", count=len(list(font_dir.glob("*.ttf"))))
+        except Exception as e:
+            log.warning("fonts.register_failed", error=str(e))
+
     def _configure_logging(self) -> None:
         level = "DEBUG" if self.verbose else self.config.log_level
         structlog.configure(
@@ -118,6 +158,18 @@ class SonicTuneApp:
                 getattr(logging, level.upper(), logging.INFO)
             ),
         )
+
+    def _on_about_to_quit(self) -> None:
+        """Qt is about to tear down the event loop (tray Quit, SIGTERM/SIGINT
+        via the handlers above, or the last window closing).
+
+        ``aboutToQuit`` is synchronous and fires before ``exec()`` returns, so
+        we can't await shutdown() directly. Schedule it on the still-running
+        loop instead; ``main()`` drains it after ``run_forever()`` returns.
+        """
+        if self._shutdown_started or self._shutdown_task is not None or not self.loop.is_running():
+            return
+        self._shutdown_task = self.loop.create_task(self.shutdown())
 
     async def _init_services(self) -> None:
         """Initialize all services. Called once on startup."""
@@ -169,6 +221,32 @@ class SonicTuneApp:
             await self.discord.connect()
             self._wire_discord()
 
+        # Last.fm scrobbling (optional)
+        if self.config.lastfm.enabled and self.config.lastfm.api_key and self.config.lastfm.api_secret:
+            self.lastfm = LastFmScrobbler(
+                api_key=self.config.lastfm.api_key,
+                api_secret=self.config.lastfm.api_secret,
+                session_key=self.config.lastfm.session_key,
+            )
+            self._wire_lastfm()
+
+        # Sleep timer
+        self.sleep_timer = SleepTimer(self.player)
+        self._wire_sleep_timer()
+
+        # SponsorBlock (optional)
+        if self.config.sponsorblock.enabled:
+            self.sponsorblock = SponsorBlock(
+                enabled=self.config.sponsorblock.enabled,
+                categories=self.config.sponsorblock.categories,
+            )
+            self._wire_sponsorblock()
+
+        # Color extractor for Material You theming
+        if self.config.ui.dynamic_theme_enabled:
+            self.color_extractor = MaterialYouExtractor()
+            self._wire_color_extractor()
+
         # Create the QML-facing proxy
         self.daemon = DaemonProxy(
             player=self.player,
@@ -182,6 +260,9 @@ class SonicTuneApp:
             db=self.db,
             sync=self.sync,
             config=self.config,
+            sleep_timer=self.sleep_timer,
+            sponsorblock=self.sponsorblock,
+            color_extractor=self.color_extractor,
         )
 
         log.info("app.ready")
@@ -196,7 +277,7 @@ class SonicTuneApp:
             if event == PlayerEvent.TRACK_CHANGED:
                 track = data.get("track")
                 if track:
-                    asyncio.create_task(  # noqa: RUF006 — fire-and-forget presence update
+                    asyncio.create_task(
                         self.discord.update(
                             title=track.title,
                             artist=track.artist,
@@ -206,7 +287,7 @@ class SonicTuneApp:
                         )
                     )
             elif event == PlayerEvent.STATE_CHANGED:
-                asyncio.create_task(  # noqa: RUF006 — fire-and-forget presence update
+                asyncio.create_task(
                     self.discord.update(
                         title=self.player.current_track.title,
                         artist=self.player.current_track.artist,
@@ -216,6 +297,136 @@ class SonicTuneApp:
 
         self.player.add_listener(_on_event)
         log.info("discord.wired")
+
+    def _wire_lastfm(self) -> None:
+        """Wire Last.fm scrobbling to player events."""
+        if not self.lastfm or not self.player:
+            return
+        from sonictune.player.types import PlayerEvent
+
+        def _on_event(event: object, data: dict) -> None:
+            if event == PlayerEvent.TRACK_CHANGED:
+                # Reset scrobble state for new track
+                self._lastfm_scrobbled = False
+                self._lastfm_start_time = None
+
+                # Send "Now Playing" to Last.fm
+                track = data.get("track")
+                if track and self.player.current_track.duration_ms > 30000:  # Only tracks > 30s
+                    asyncio.create_task(
+                        self.lastfm.now_playing(
+                            artist=track.artist,
+                            title=track.title,
+                            album=getattr(track, "album", ""),
+                            duration=track.duration_ms // 1000,
+                        )
+                    )
+            elif event == PlayerEvent.STATE_CHANGED:
+                if data.get("state") == "playing" and not self._lastfm_start_time:
+                    self._lastfm_start_time = int(time.time())
+            elif event == PlayerEvent.POSITION_CHANGED:
+                if (self._lastfm_start_time and not self._lastfm_scrobbled and
+                    self.player.current_track.duration_ms > 30000):
+                    # Scrobble after 50% or 4 minutes, whichever comes first
+                    threshold = min(
+                        self.player.current_track.duration_ms * 0.5,
+                        240000  # 4 minutes
+                    )
+                    if data.get("position_ms", 0) >= threshold:
+                        asyncio.create_task(
+                            self.lastfm.scrobble(
+                                artist=self.player.current_track.artist,
+                                title=self.player.current_track.title,
+                                timestamp=self._lastfm_start_time,
+                                album=getattr(self.player.current_track, "album", ""),
+                                duration=self.player.current_track.duration_ms // 1000,
+                            )
+                        )
+                        self._lastfm_scrobbled = True
+            elif event == PlayerEvent.END_REACHED:
+                if (self._lastfm_start_time and not self._lastfm_scrobbled and
+                    self.player.current_track.duration_ms > 30000):
+                    asyncio.create_task(
+                        self.lastfm.scrobble(
+                            artist=self.player.current_track.artist,
+                            title=self.player.current_track.title,
+                            timestamp=self._lastfm_start_time,
+                            album=getattr(self.player.current_track, "album", ""),
+                            duration=self.player.current_track.duration_ms // 1000,
+                        )
+                    )
+                    self._lastfm_scrobbled = True
+
+        self.player.add_listener(_on_event)
+        log.info("lastfm.wired")
+
+    def _wire_sleep_timer(self) -> None:
+        """Wire sleep timer to player events."""
+        if not self.sleep_timer or not self.player:
+            return
+        from sonictune.player.types import PlayerEvent
+
+        def _on_event(event: object, data: dict) -> None:
+            if event == PlayerEvent.END_REACHED:
+                asyncio.create_task(self.sleep_timer.on_track_ended())
+
+        self.player.add_listener(_on_event)
+        log.info("sleep_timer.wired")
+
+    def _wire_sponsorblock(self) -> None:
+        """Wire SponsorBlock skipping to player events."""
+        if not self.sponsorblock or not self.player:
+            return
+        from sonictune.player.types import PlayerEvent
+
+        def _on_event(event: object, data: dict) -> None:
+            if event == PlayerEvent.TRACK_CHANGED:
+                # Fetch segments for the new track
+                track = data.get("track")
+                if track and track.video_id:
+                    asyncio.create_task(self._fetch_sponsorblock_segments(track.video_id))
+            elif event == PlayerEvent.POSITION_CHANGED:
+                # Check if we should skip a segment
+                position_ms = data.get("position_ms", 0)
+                skip_to_ms = self.sponsorblock.should_skip(
+                    self.player.current_track.video_id, position_ms
+                )
+                if skip_to_ms:
+                    asyncio.create_task(self.player.seek(skip_to_ms))
+                    log.info("sponsorblock.skipped", position=position_ms, skip_to=skip_to_ms)
+
+        self.player.add_listener(_on_event)
+        log.info("sponsorblock.wired")
+
+    async def _fetch_sponsorblock_segments(self, video_id: str) -> None:
+        """Fetch SponsorBlock segments for a video."""
+        if not self.sponsorblock:
+            return
+        segments = await self.sponsorblock.get_segments(video_id)
+        if segments:
+            log.info("sponsorblock.segments_fetched", video_id=video_id, count=len(segments))
+
+    def _wire_color_extractor(self) -> None:
+        """Wire Material You color extraction to art loading."""
+        if not self.color_extractor or not self.art_cache:
+            return
+
+        # Monkey patch ArtCache.get_path to extract colors after art is loaded
+        original_get_path = self.art_cache.get_path
+
+        async def patched_get_path(url: str) -> Path | None:
+            path = await original_get_path(url)
+            if path and path.exists():
+                try:
+                    palette = await asyncio.to_thread(self.color_extractor.extract, path)
+                    if palette and self.daemon:
+                        self.daemon.dynamicPaletteChanged.emit(palette)
+                except Exception as e:
+                    log.warning("color_extractor.failed", error=str(e))
+            return path
+
+        self.art_cache.get_path = patched_get_path
+        log.info("color_extractor.wired")
 
     def _wire_history_reporting(self) -> None:
         """Report plays back to YouTube Music (for YTM Recap/history).
@@ -228,7 +439,7 @@ class SonicTuneApp:
             return
 
         def _on_event(event: object, data: dict) -> None:
-            asyncio.create_task(self._on_player_event(event, data))  # noqa: RUF006
+            asyncio.create_task(self._on_player_event(event, data))
 
         self.player.add_listener(_on_event)
         log.info("history.wired", enabled=self.config.ui.report_history)
@@ -314,15 +525,30 @@ class SonicTuneApp:
         self._tray = TrayIcon(self.app, self._engine.rootObjects()[0])
         self._tray.show()
 
+    def _setup_shortcuts(self) -> None:
+        """Set up keyboard shortcuts."""
+        if not self.daemon or not self._engine:
+            return
+        self.shortcuts = ShortcutManager(
+            self._engine.rootObjects()[0],
+            self.daemon
+        )
+        self.shortcuts.register(self.config.shortcuts)
+        log.info("shortcuts.wired")
+
     async def run(self) -> int:
         """Run the application."""
         await self._init_services()
         self._setup_qml()
         self._setup_tray()
+        self._setup_shortcuts()
         return 0
 
     async def shutdown(self) -> None:
         """Clean shutdown."""
+        if self._shutdown_started:
+            return
+        self._shutdown_started = True
         log.info("app.stopping")
         if self.discord:
             await self.discord.close()
@@ -361,7 +587,16 @@ def main(argv: list[str] | None = None) -> int:
         # the thread while the asyncio loop never runs, so every async proxy
         # call (home feed, search, playback) would hang forever.
         app.loop.create_task(app.run())
-        return app.loop.run_forever()
+        try:
+            result = app.loop.run_forever()
+        finally:
+            # aboutToQuit scheduled shutdown() on the loop but the loop has
+            # stopped by now — pump it to completion so the DB is closed
+            # cleanly, MPRIS unregistered, mpv terminated and the Discord
+            # socket released before the process exits.
+            if app._shutdown_task is not None and not app._shutdown_task.done():
+                app.loop.run_until_complete(app._shutdown_task)
+        return result
     except KeyboardInterrupt:
         return 130
     except Exception:

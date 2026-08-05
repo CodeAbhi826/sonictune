@@ -5,11 +5,9 @@ import colorsys
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-from PIL import Image
 
 import structlog
+from PIL import Image
 
 log = structlog.get_logger()
 
@@ -66,16 +64,16 @@ class MaterialYouExtractor:
     @staticmethod
     def _adjust_lightness(r: int, g: int, b: int, factor: float) -> tuple[int, int, int]:
         """Adjust lightness in HSL space."""
-        h, l, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
-        l = max(0.0, min(1.0, l * factor))
-        r, g, b = colorsys.hls_to_rgb(h, l, s)
+        h, lightness, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
+        lightness = max(0.0, min(1.0, lightness * factor))
+        r, g, b = colorsys.hls_to_rgb(h, lightness, s)
         return (int(r * 255), int(g * 255), int(b * 255))
 
     @staticmethod
     def _generate_tonal_palette(base_rgb: tuple[int, int, int]) -> dict[int, str]:
         """Generate Material 3 tonal palette (0-100 tones)."""
         r, g, b = base_rgb
-        h, l, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
+        h, _lightness, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
 
         tones = {}
         for tone in range(0, 101, 10):
@@ -90,7 +88,7 @@ class MaterialYouExtractor:
     async def extract_palette(cls, image_path: str | Path) -> MaterialPalette:
         """Extract Material You palette from an image file."""
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             img = await loop.run_in_executor(
                 None, cls._process_image, str(image_path)
             )
@@ -134,8 +132,6 @@ class MaterialYouExtractor:
     @classmethod
     def _build_palette(cls, primary_rgb: tuple[int, int, int]) -> MaterialPalette:
         """Build full Material 3 palette from primary color."""
-        primary_hex = cls._rgb_to_hex(*primary_rgb)
-
         primary_tones = cls._generate_tonal_palette(primary_rgb)
         secondary_tones = cls._generate_tonal_palette(
             cls._adjust_lightness(*primary_rgb, 1.2)
@@ -196,13 +192,12 @@ async def extract_palette_from_url(image_url: str, cache_dir: Path) -> MaterialP
         cache_path = cache_dir / filename
 
         if not cache_path.exists():
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as resp:
-                    if resp.status == 200:
-                        data = await resp.read()
-                        cache_path.write_bytes(data)
-                    else:
-                        return MaterialYouExtractor._fallback_palette()
+            async with aiohttp.ClientSession() as session, session.get(image_url) as resp:
+                if resp.status == 200:
+                    data = await resp.read()
+                    cache_path.write_bytes(data)
+                else:
+                    return MaterialYouExtractor._fallback_palette()
 
         return await MaterialYouExtractor.extract_palette(cache_path)
     except Exception as e:

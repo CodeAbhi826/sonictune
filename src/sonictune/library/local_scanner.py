@@ -2,11 +2,13 @@
 
 import asyncio
 import colorsys
+import contextlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar
 
+import structlog
 from mutagen import File as MutagenFile
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC
@@ -15,8 +17,7 @@ from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.oggopus import OggOpus
 from mutagen.oggvorbis import OggVorbis
-
-import structlog
+from PIL import Image
 
 log = structlog.get_logger()
 
@@ -57,15 +58,15 @@ class MaterialPalette:
 class LocalScanner:
     """Scans local directories for audio files and extracts metadata using mutagen."""
 
-    SUPPORTED_EXTENSIONS = {
+    SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {
         '.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg', '.opus', '.wma'
     }
 
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self, cache_dir: Path | None = None):
         self.cache_dir = cache_dir or Path.home() / '.cache/sonictune'
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    async def scan_directory(self, root_path: str | Path) -> List[Dict[str, Any]]:
+    async def scan_directory(self, root_path: str | Path) -> list[dict[str, Any]]:
         """Scan a directory for audio files and extract metadata."""
         root = Path(root_path)
         if not root.exists() or not root.is_dir():
@@ -86,8 +87,8 @@ class LocalScanner:
                         tracks.append(metadata)
                 except Exception as e:
                     log.warning(
-                        "local_scan_metadata_failed", 
-                        path=str(file_path), 
+                        "local_scan_metadata_failed",
+                        path=str(file_path),
                         error=str(e)
                     )
 
@@ -97,7 +98,7 @@ class LocalScanner:
             log.error("local_scan_failed", error=str(e), root=str(root_path))
             return []
 
-    async def _find_audio_files(self, root: Path) -> List[Path]:
+    async def _find_audio_files(self, root: Path) -> list[Path]:
         """Find all audio files in directory tree."""
         def _find():
             files = []
@@ -105,10 +106,10 @@ class LocalScanner:
                 files.extend(root.rglob(f'*{ext}'))
             return files
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _find)
 
-    async def _extract_metadata(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    async def _extract_metadata(self, file_path: Path) -> dict[str, Any] | None:
         """Extract metadata from an audio file using mutagen."""
         def _extract():
             try:
@@ -153,7 +154,7 @@ class LocalScanner:
 
                 # Format-specific metadata extraction
                 if file_path.suffix.lower() == '.mp3':
-                    self._extract_mp3_metadata(audio, metadata)
+                    self._extract_mp3_metadata(audio, metadata, file_path)
                 elif file_path.suffix.lower() in ('.flac', '.ogg', '.opus'):
                     self._extract_flac_vorbis_metadata(audio, metadata)
                 elif file_path.suffix.lower() in ('.m4a', '.aac'):
@@ -184,7 +185,7 @@ class LocalScanner:
                         'file_size': file_path.stat().st_size,
                         'file_extension': file_path.suffix.lower(),
                         'last_modified': file_path.stat().st_mtime,
-                    })
+                    }, file_path)
                 except Exception as e:
                     log.warning("local_scan_mp3_fallback_failed", path=str(file_path), error=str(e))
                     return None
@@ -192,16 +193,13 @@ class LocalScanner:
                 log.warning("local_scan_extract_failed", path=str(file_path), error=str(e))
                 return None
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _extract)
 
-    def _extract_mp3_metadata(self, audio: MP3, metadata: Dict[str, Any]):
+    def _extract_mp3_metadata(self, audio: MP3, metadata: dict[str, Any], file_path: str | Path):
         """Extract metadata from MP3 files."""
         try:
-            if isinstance(audio, EasyID3):
-                tags = audio
-            else:
-                tags = EasyID3(file_path)
+            tags = audio if isinstance(audio, EasyID3) else EasyID3(file_path)
 
             if 'title' in tags:
                 metadata['title'] = tags['title'][0]
@@ -224,15 +222,13 @@ class LocalScanner:
             if 'genre' in tags:
                 metadata['genre'] = tags['genre'][0]
             if 'date' in tags:
-                try:
+                with contextlib.suppress(ValueError, IndexError):
                     metadata['year'] = int(tags['date'][0][:4])
-                except (ValueError, IndexError):
-                    pass
 
         except Exception as e:
             log.warning("local_scan_mp3_tags_failed", error=str(e))
 
-    def _extract_flac_vorbis_metadata(self, audio: FLAC | OggVorbis | OggOpus, metadata: Dict[str, Any]):
+    def _extract_flac_vorbis_metadata(self, audio: FLAC | OggVorbis | OggOpus, metadata: dict[str, Any]):
         """Extract metadata from FLAC, Ogg Vorbis, and Ogg Opus files."""
         if 'title' in audio:
             metadata['title'] = audio['title'][0]
@@ -255,12 +251,10 @@ class LocalScanner:
         if 'genre' in audio:
             metadata['genre'] = audio['genre'][0]
         if 'date' in audio:
-            try:
+            with contextlib.suppress(ValueError, IndexError):
                 metadata['year'] = int(audio['date'][0][:4])
-            except (ValueError, IndexError):
-                pass
 
-    def _extract_mp4_metadata(self, audio: MP4, metadata: Dict[str, Any]):
+    def _extract_mp4_metadata(self, audio: MP4, metadata: dict[str, Any]):
         """Extract metadata from MP4/AAC files."""
         if 'a9nam' in audio:
             metadata['title'] = audio['a9nam'][0]
@@ -283,25 +277,23 @@ class LocalScanner:
         if 'a9gen' in audio:
             metadata['genre'] = audio['a9gen'][0]
         if 'a9day' in audio:
-            try:
+            with contextlib.suppress(ValueError, IndexError):
                 metadata['year'] = int(audio['a9day'][0][:4])
-            except (ValueError, IndexError):
-                pass
 
-    async def get_album_art(self, file_path: str | Path) -> Optional[bytes]:
+    async def get_album_art(self, file_path: str | Path) -> bytes | None:
         """Extract album art from audio file."""
         def _extract():
             try:
-                file_path = Path(file_path)
-                audio = MutagenFile(file_path)
+                path = Path(file_path)
+                audio = MutagenFile(path)
                 if not audio:
                     return None
 
-                if file_path.suffix.lower() == '.mp3':
+                if path.suffix.lower() == '.mp3':
                     return self._extract_mp3_album_art(audio)
-                elif file_path.suffix.lower() in ('.flac', '.ogg', '.opus'):
+                elif path.suffix.lower() in ('.flac', '.ogg', '.opus'):
                     return self._extract_flac_vorbis_album_art(audio)
-                elif file_path.suffix.lower() in ('.m4a', '.aac'):
+                elif path.suffix.lower() in ('.m4a', '.aac'):
                     return self._extract_mp4_album_art(audio)
 
                 return None
@@ -310,10 +302,10 @@ class LocalScanner:
                 log.warning("local_scan_album_art_failed", path=str(file_path), error=str(e))
                 return None
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _extract)
 
-    def _extract_mp3_album_art(self, audio: MP3) -> Optional[bytes]:
+    def _extract_mp3_album_art(self, audio: MP3) -> bytes | None:
         """Extract album art from MP3 files."""
         if 'APIC:' in audio.tags:
             for tag in audio.tags.getall('APIC:'):
@@ -321,7 +313,7 @@ class LocalScanner:
                     return tag.data
         return None
 
-    def _extract_flac_vorbis_album_art(self, audio: FLAC | OggVorbis | OggOpus) -> Optional[bytes]:
+    def _extract_flac_vorbis_album_art(self, audio: FLAC | OggVorbis | OggOpus) -> bytes | None:
         """Extract album art from FLAC/Ogg files."""
         if isinstance(audio, FLAC) and audio.pictures:
             for picture in audio.pictures:
@@ -329,13 +321,11 @@ class LocalScanner:
                     return picture.data
         return None
 
-    def _extract_mp4_album_art(self, audio: MP4) -> Optional[bytes]:
+    def _extract_mp4_album_art(self, audio: MP4) -> bytes | None:
         """Extract album art from MP4/AAC files."""
         if 'covr' in audio:
             cover_data = audio['covr'][0]
-            if isinstance(cover_data, bytes):
-                return cover_data
-            elif isinstance(cover_data, MP4Cover):
+            if isinstance(cover_data, (bytes, MP4Cover)):
                 return cover_data
         return None
 
@@ -351,16 +341,16 @@ class LocalScanner:
     @staticmethod
     def _adjust_lightness(r: int, g: int, b: int, factor: float) -> tuple[int, int, int]:
         """Adjust lightness in HSL space."""
-        h, l, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
-        l = max(0.0, min(1.0, l * factor))
-        r, g, b = colorsys.hls_to_rgb(h, l, s)
+        h, lightness, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
+        lightness = max(0.0, min(1.0, lightness * factor))
+        r, g, b = colorsys.hls_to_rgb(h, lightness, s)
         return (int(r * 255), int(g * 255), int(b * 255))
 
     @staticmethod
     def _generate_tonal_palette(base_rgb: tuple[int, int, int]) -> dict[int, str]:
         """Generate Material 3 tonal palette (0-100 tones)."""
         r, g, b = base_rgb
-        h, l, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
+        h, _lightness, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
 
         tones = {}
         for tone in range(0, 101, 10):
@@ -375,7 +365,7 @@ class LocalScanner:
     async def extract_palette(cls, image_path: str | Path) -> MaterialPalette:
         """Extract Material You palette from an image file."""
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             img = await loop.run_in_executor(
                 None, cls._process_image, str(image_path)
             )
@@ -397,7 +387,7 @@ class LocalScanner:
             from PIL import Image
             with Image.open(image_path) as img:
                 img = img.convert("RGB")
-                img.thumbnail((100, 100), Image.Resampling.LANCZOS)
+                img.thumbnail((100, 100), Image.LANCZOS)
                 return img
         except Exception:
             return None
@@ -405,7 +395,7 @@ class LocalScanner:
     @staticmethod
     def _get_dominant_color(img: Any) -> tuple[int, int, int]:
         """Get dominant color using simple quantization."""
-        img_small = img.resize((20, 20), Image.Resampling.LANCZOS)
+        img_small = img.resize((20, 20), Image.LANCZOS)
         colors = img_small.getcolors(400)
         if not colors:
             return (103, 80, 164)
@@ -420,8 +410,6 @@ class LocalScanner:
     @classmethod
     def _build_palette(cls, primary_rgb: tuple[int, int, int]) -> MaterialPalette:
         """Build full Material 3 palette from primary color."""
-        primary_hex = cls._rgb_to_hex(*primary_rgb)
-
         primary_tones = cls._generate_tonal_palette(primary_rgb)
         secondary_tones = cls._generate_tonal_palette(
             cls._adjust_lightness(*primary_rgb, 1.2)
@@ -484,13 +472,12 @@ class LocalScanner:
             cache_path = cache_dir / filename
 
             if not cache_path.exists():
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(image_url) as resp:
-                        if resp.status == 200:
-                            data = await resp.read()
-                            cache_path.write_bytes(data)
-                        else:
-                            return cls._fallback_palette()
+                async with aiohttp.ClientSession() as session, session.get(image_url) as resp:
+                    if resp.status == 200:
+                        data = await resp.read()
+                        cache_path.write_bytes(data)
+                    else:
+                        return cls._fallback_palette()
 
             return await cls.extract_palette(cache_path)
         except Exception as e:

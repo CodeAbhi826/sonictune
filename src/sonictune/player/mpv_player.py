@@ -74,8 +74,6 @@ class MpvPlayer:
             gapless_audio="yes" if self._config.gapless else "no",
             # Hardware decoding (auto-safe falls back to software if HW fails)
             hwdec="auto-safe",
-            # Use GPU for video rendering if playing music videos
-            gpu_context="wayland",  # or "x11egl" depending on session
             # Network
             cache=True,
             demuxer_max_bytes=50 * 1024 * 1024,  # 50 MB
@@ -93,20 +91,13 @@ class MpvPlayer:
             self._mpv["replaygain"] = "track"
             self._mpv["replaygain-preamp"] = 0
 
-        # Audio normalization (compressor/loudnorm filter)
-        if self._config.normalization:
-            self._mpv["af"] = "lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]"
-
         # YouTube Music stream URLs only serve correctly when the request
         # carries a matching Referer; without it the CDN stalls/refuses and
         # mpv sits at 0s with no audio (no error event, just silence).
         self._mpv["referrer"] = "https://music.youtube.com/"
 
-        # Crossfade (mpv af filter)
-        if self._crossfade_seconds > 0:
-            existing = self._mpv["af"] or ""
-            xfade = f"lavfi=[acrossfade=d={self._crossfade_seconds}:c1=tri:c2=tri]"
-            self._mpv["af"] = f"{existing},{xfade}" if existing else xfade
+        # Build the audio filter chain from current settings
+        self._rebuild_af_chain()
 
         # Register event handlers (run in mpv's thread — marshal to our loop)
         def _on_event(event: Any) -> None:
@@ -122,6 +113,20 @@ class MpvPlayer:
 
         # Start position poller (5 Hz)
         self._position_poller = asyncio.create_task(self._poll_position())
+
+    def _rebuild_af_chain(self) -> None:
+        """Rebuild the mpv `af` filter chain from current settings.
+        Call this any time normalization or crossfade state changes —
+        never assign self._mpv.af directly from a single feature's code path.
+        """
+        if not self._mpv:
+            return
+        filters: list[str] = []
+        if self._config.normalization:
+            filters.append("lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]")
+        if self._crossfade_seconds > 0:
+            filters.append(f"lavfi=[acrossfade=d={self._crossfade_seconds}:c1=tri:c2=tri]")
+        self._mpv.af = ",".join(filters)
 
     async def shutdown(self) -> None:
         if self._position_poller:
@@ -305,11 +310,7 @@ class MpvPlayer:
     async def set_crossfade(self, seconds: int) -> None:
         """Set crossfade length (clamped to 0-12s). 0 disables."""
         self._crossfade_seconds = max(0, min(12, seconds))
-        if self._mpv:
-            if self._crossfade_seconds > 0:
-                self._mpv.af = f"lavfi=[acrossfade=d={self._crossfade_seconds}]"
-            else:
-                self._mpv.af = ""
+        self._rebuild_af_chain()
 
     async def set_speed(self, speed: float) -> None:
         """Set playback speed (clamped to 0.5x-2.0x)."""

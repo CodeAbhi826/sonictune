@@ -116,6 +116,13 @@ ignore = [
 # Fire-and-forget asyncio tasks are an intentional, established pattern in the
 # UI proxy; dropping the handle is deliberate (qasync event loop keeps them alive).
 "src/sonictune/ui/daemon_proxy.py" = ["RUF006"]
+# The integration wiring in app.py uses the same fire-and-forget create_task
+# pattern for scrobbling / sponsorblock / sleep-timer side effects.
+"src/sonictune/app.py" = ["RUF006"]
+# Scanner/color-extractor do quick pathlib stat calls directly and delegate the
+# heavy I/O to an executor — matching the buffer_manager.py precedent above.
+"src/sonictune/library/local_scanner.py" = ["ASYNC240"]
+"src/sonictune/ui/color_extractor.py" = ["ASYNC240"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -1,11 +1,9 @@
 """Tests for the local library scanner."""
 
-import asyncio
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+
 from sonictune.library.local_scanner import LocalScanner
 
 
@@ -21,10 +19,10 @@ def mock_audio_file(tmp_path):
 async def test_local_scanner_finds_files(mock_audio_file):
     """Test that the scanner finds audio files."""
     scanner = LocalScanner()
-    
+
     # Test that the scanner can find the file (even if metadata extraction fails)
     tracks = await scanner.scan_directory(str(mock_audio_file.parent))
-    
+
     # Should find at least one file
     assert len(tracks) >= 0  # Could be 0 if metadata extraction fails
 
@@ -51,11 +49,11 @@ async def test_local_scanner_supported_extensions():
 async def test_local_scanner_extracts_basic_metadata(mock_audio_file):
     """Test that the scanner extracts basic metadata from files."""
     scanner = LocalScanner()
-    
+
     # Mock the file finding to return our test file
     with patch.object(scanner, '_find_audio_files') as mock_find:
         mock_find.return_value = [mock_audio_file]
-        
+
         # Mock the metadata extraction to return basic metadata
         with patch.object(scanner, '_extract_metadata') as mock_extract:
             mock_metadata = {
@@ -71,9 +69,9 @@ async def test_local_scanner_extracts_basic_metadata(mock_audio_file):
                 'path': str(mock_audio_file)
             }
             mock_extract.return_value = mock_metadata
-            
+
             tracks = await scanner.scan_directory(str(mock_audio_file.parent))
-            
+
             assert len(tracks) == 1
             track = tracks[0]
             assert track['title'] == 'Test Title'

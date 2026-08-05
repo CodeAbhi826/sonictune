@@ -16,7 +16,7 @@ QtObject {
 
     // MATERIAL 3 DARK SURFACES
     property color background:             "#0F0F0F"
-    property color onBackground:           Qt.color("#FFFFFF")
+    property color onBackground:           "#E6E1E5"
     property color surface:                "#1C1B1F"
     property color surfaceDim:             "#141218"
     property color surfaceBright:          "#3B383E"
@@ -26,33 +26,33 @@ QtObject {
     property color surfaceContainerHigh:   "#2B2930"
     property color surfaceContainerHighest:"#36343B"
     property color surfaceVariant:         "#49454F"
-    property color onSurface:              Qt.color("#FFFFFF")
-    property color onSurfaceVariant:       Qt.color("#FFFFFF")
+    property color onSurface:              "#E6E1E5"
+    property color onSurfaceVariant:       "#CAC4D0"
 
     // MATERIAL 3 PRIMARY (Purple accent)
     property color primary:                "#D0BCFF"
-    property color onPrimary:              Qt.color("#FFFFFF")
+    property color onPrimary:              "#381E72"   // dark text on light-lavender primary
     property color primaryContainer:       "#4F378B"
-    property color onPrimaryContainer:     Qt.color("#FFFFFF")
+    property color onPrimaryContainer:     "#EADDFF"
     property color inversePrimary:         "#6750A4"
 
     // MATERIAL 3 SECONDARY
     property color secondary:              "#CCC2DC"
-    property color onSecondary:            Qt.color("#FFFFFF")
+    property color onSecondary:            "#332D41"
     property color secondaryContainer:     "#4A4458"
-    property color onSecondaryContainer:   Qt.color("#FFFFFF")
+    property color onSecondaryContainer:   "#E8DEF8"
 
     // MATERIAL 3 TERTIARY (Pink accent)
     property color tertiary:               "#EFB8C8"
-    property color onTertiary:             Qt.color("#FFFFFF")
+    property color onTertiary:             "#492532"
     property color tertiaryContainer:      "#633B48"
-    property color onTertiaryContainer:    Qt.color("#FFFFFF")
+    property color onTertiaryContainer:    "#FFD8E4"
 
     // MATERIAL 3 ERROR
     property color error:                  "#F2B8B5"
-    property color onError:                Qt.color("#FFFFFF")
+    property color onError:                "#601410"
     property color errorContainer:         "#8C1D18"
-    property color onErrorContainer:       Qt.color("#FFFFFF")
+    property color onErrorContainer:       "#F9DEDC"
 
     // OUTLINES
     property color outline:                "#938F99"
@@ -109,8 +109,6 @@ QtObject {
         theme.playerBarBorder = palette.outline || theme.playerBarBorder
         theme.shadowColor = palette.shadow || theme.shadowColor
         theme.scrim = palette.scrim || theme.scrim
-
-        theme.objectName = Math.random().toString()
     }
 
     // TYPOGRAPHY
@@ -167,7 +165,7 @@ QtObject {
     readonly property int shadowSm:  (lowEndMode || disableShadows) ? 0 : 2
     readonly property int shadowMd:  (lowEndMode || disableShadows) ? 0 : 4
     readonly property int shadowLg:  (lowEndMode || disableShadows) ? 0 : 8
-    readonly property color shadowColor: Qt.rgba(0, 0, 0, 0.25)
+    property color shadowColor: Qt.rgba(0, 0, 0, 0.25)
 
     // HELPERS
     function formatDuration(ms) {

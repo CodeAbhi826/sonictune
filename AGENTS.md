@@ -13,3 +13,10 @@
 
 - **Max 30 total worker requests**: Do not exceed 30 API/tool/worker requests in a single sequence or session (to stay safely under the worker local limit of 32/32 and avoid `ResourceExhausted` errors). Always stop, consolidate, or pause before reaching 30 requests.
 
+## Changelog Rule
+
+- **Update `CHANGELOG.md` after every change**: After implementing fixes, features, or refactors, update the changelog with:
+  - A concise summary of the change.
+  - Links to relevant issues/PRs.
+  - Impacts on MCP or visual testing (if applicable).
+

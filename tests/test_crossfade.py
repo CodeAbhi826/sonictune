@@ -4,7 +4,10 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import MagicMock
 
-from sonictune.player.mpv_player import MpvPlayer
+import pytest
+
+mpv = pytest.importorskip("mpv")
+from sonictune.player.mpv_player import MpvPlayer  # noqa: E402
 
 
 def test_crossfade_clamp_high() -> None:
@@ -16,9 +19,9 @@ def test_crossfade_clamp_high() -> None:
 
 
 def test_crossfade_disable() -> None:
-    """T-021: set_crossfade(0) disables crossfade."""
+    """T-021: set_crossfade(0) disables crossfade (normalization stays)."""
     player = MpvPlayer()
     player._mpv = MagicMock()
     asyncio.run(player.set_crossfade(0))
     assert player._crossfade_seconds == 0
-    assert player._mpv.af == ""
+    assert player._mpv.af == "lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]"

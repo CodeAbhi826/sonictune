@@ -18,6 +18,7 @@ Item {
     
     // --- Header with track info -------------------------------------------
     Rectangle {
+        id: header
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -87,7 +88,8 @@ Item {
     // --- Lyrics list ------------------------------------------------------
     ListView {
         id: lyricsList
-        anchors.top: header.bottom
+        anchors.top: parent.top
+        anchors.topMargin: 80  // header height
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -132,34 +134,31 @@ Item {
                 wrapMode: Text.Wrap
                 
                 // Smooth transitions
-Behavior on color {
-    enabled: !Theme.reducedMotion
-    ColorAnimation { duration: Theme.durFast }
-}
-Behavior on font {
-    enabled: !Theme.reducedMotion
-    FontAnimation { duration: Theme.durFast }
-}
+                Behavior on color {
+                    enabled: !Theme.reducedMotion
+                    ColorAnimation { duration: Theme.durFast }
+                }
+                Behavior on font.weight {
+                    enabled: !Theme.reducedMotion
+                    NumberAnimation { duration: Theme.durFast }
+                }
             }
             
-            // Auto-scroll to current line
-            Component.onCompleted: {
-                if (lyricLine.isActive) {
-                    lyricsList.currentIndex = lyricLine.index
-                }
-            }
         }
-        
-        // Auto-scroll when currentPositionMs changes
-        onCurrentPositionMsChanged: {
-            for (let i = 0; i < model.count; i++) {
-                if (model.get(i).time_ms <= currentPositionMs && 
-                    (i === model.count - 1 || model.get(i + 1).time_ms > currentPositionMs)) {
-                    if (lyricsList.currentIndex !== i) {
-                        lyricsList.currentIndex = i
-                    }
-                    break
+    }
+
+    // Auto-scroll to current line
+    function onCurrentPositionMsChanged() {
+        const list = lyricsList.model
+        for (let i = 0; i < list.length; i++) {
+            const current = list[i]
+            const next = list[i + 1]
+            if (current.time_ms <= root.currentPositionMs &&
+                (!next || next.time_ms > root.currentPositionMs)) {
+                if (lyricsList.currentIndex !== i) {
+                    lyricsList.currentIndex = i
                 }
+                break
             }
         }
     }

@@ -4,7 +4,10 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import MagicMock
 
-from sonictune.player.mpv_player import MpvPlayer
+import pytest
+
+mpv = pytest.importorskip("mpv")
+from sonictune.player.mpv_player import MpvPlayer  # noqa: E402
 
 
 def test_playback_speed_clamp() -> None:

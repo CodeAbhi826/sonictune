@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased] — 2026-08-05 (Audit fix pass)
+
+### Added
+- Bundled **Inter** (Regular/Medium/SemiBold/Bold) + **JetBrains Mono** (Regular/Medium/SemiBold/Bold) under `data/fonts/` with their OFL-1.1 license texts (V3); `_register_fonts()` verified to expose the exact family names Theme.qml uses.
+- Bounded stream-resolution retry/fallback in `library/ytmusic.py` (G1): yt-dlp fallback escalates `force_ipv4` → `force_ipv4`+`geo_bypass`, returns `None` after 3 attempts; `daemon_proxy._play_track` toasts "Skipped — unavailable" and auto-advances.
+- Wiring tests for SponsorBlock (G2) proving POSITION_CHANGED seeks and TRACK_CHANGED fetches through the app listener.
+- Cross-desktop release verification checklist in `docs/ROADMAP.md` (G3): GNOME/Wayland, plain X11, and one non-Arch distro.
+- `test_theme_tokens_in_sync` (D1): drift guard between `Theme.qml` and `Theme.py`; fixed 3 drifted values (`on_background`, `on_surface`, `on_tertiary_container`).
+- Feature list in `README.md` (highlights SponsorBlock).
+- Note in `docs/ROADMAP.md` Phase 3 that `top_albums` is intentionally empty (L2).
+
+### Fixed
+- **`app.py`: `time` not imported** in the Last.fm wiring (NameError at runtime) — real bug.
+- **`local_scanner.py`: `file_path` undefined** in `_extract_mp3_metadata` (NameError on the MP3 fallback path); F823 shadowing in `get_album_art`; missing `PIL.Image` import; unused `primary_hex`.
+- Removed inert `gpu_context="wayland"` from the audio-only `MpvPlayer` (L3).
+- Test files for deleted dead modules removed (`test_audio_devices.py`, `test_prefetch.py`, `test_social.py`).
+- 52 ruff errors cleared (undefined names, unused imports/vars, ambiguous `l` vars, nested `with`, redundant try/except); `ruff check` now passes clean.
+- `test_crossfade_disable` updated for the H1 `_rebuild_af_chain()` behavior (keeps normalization when crossfade is off).
+
+### Changed
+- Per-file ruff ignores: `app.py` RUF006 (fire-and-forget wiring tasks, matches `daemon_proxy.py`); `local_scanner.py`/`color_extractor.py` ASYNC240 (executor-delegated disk I/O).
+
+---
+
 ## [Unreleased] — 2026-08-04 (QA suite green + QML polish)
 
 ### Added

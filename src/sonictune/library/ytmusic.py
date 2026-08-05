@@ -20,6 +20,15 @@ from sonictune.library.models import Album, Artist, Playlist, Track
 log = structlog.get_logger()
 
 
+class UnresolvableStreamError(RuntimeError):
+    """Raised when a stream URL cannot be resolved for a track.
+
+    Used by the bounded yt-dlp retry path to signal a track that is truly
+    unresolvable (deleted, region-locked, age-gated, ...) so callers can
+    skip to the next queued track instead of surfacing a raw error.
+    """
+
+
 class YTMusicLibrary:
     """Async wrapper around ytmusicapi.YTMusic."""
 
@@ -201,16 +210,21 @@ class YTMusicLibrary:
     # free (non-Premium) accounts where itag 141 is unavailable.
     _AUDIO_ITAGS = (141, 251, 140, 250, 249, 139)
 
-    async def get_stream_url(self, video_id: str, itag: int) -> str:
+    async def get_stream_url(self, video_id: str, itag: int) -> str | None:
         """Resolve a streaming URL for a given video_id + itag.
 
         Primary: ``ytmusicapi.get_song()`` streaming data (pre-signed URLs).
-        Fallback: yt-dlp extraction. Results are cached (5 min TTL) and
-        deduplicated with per-video locks (bounded to ``_max_url_locks``).
+        Fallback: yt-dlp extraction with a bounded retry that escalates
+        bypass flags (``force_ipv4``, then ``force_ipv4`` + ``geo_bypass``)
+        before giving up. Returns ``None`` when the track is unresolvable
+        (deleted, region-locked, age-gated, ...) so callers can skip to the
+        next queued track instead of surfacing a raw error.
 
-        yt-dlp falls are rate-limited to 1 call per ``_min_url_interval``
-        seconds globally; ytmusicapi requests are not (they are a single
-        lightweight JSON call and are the preferred path).
+        Results are cached (5 min TTL) and deduplicated with per-video locks
+        (bounded to ``_max_url_locks``). yt-dlp calls are rate-limited to 1
+        call per ``_min_url_interval`` seconds globally; ytmusicapi requests
+        are not (they are a single lightweight JSON call and are the
+        preferred path).
         """
         now = time.time()
         if video_id in self._url_cache:
@@ -232,11 +246,34 @@ class YTMusicLibrary:
                 log.info("stream.ytmusicapi", video_id=video_id, itag=itag)
                 return url
 
-            # Fallback: yt-dlp extraction (rate-limited globally).
-            url = await self._get_stream_url_ytdlp(video_id, itag)
-            self._url_cache[video_id] = (url, time.time())
-            log.info("stream.ytdlp", video_id=video_id, itag=itag)
-            return url
+            # Fallback: yt-dlp extraction with escalating bypass flags.
+            for attempt, extra_args in enumerate(
+                ((), ("force_ipv4",), ("force_ipv4", "geo_bypass"))
+            ):
+                try:
+                    url = await self._get_stream_url_ytdlp(
+                        video_id, itag, extra_args
+                    )
+                    self._url_cache[video_id] = (url, time.time())
+                    log.info(
+                        "stream.ytdlp",
+                        video_id=video_id,
+                        itag=itag,
+                        attempt=attempt,
+                    )
+                    return url
+                except UnresolvableStreamError:
+                    log.warning(
+                        "stream.retry",
+                        video_id=video_id,
+                        itag=itag,
+                        attempt=attempt,
+                        flags=extra_args,
+                    )
+
+            log.warning("stream.unresolvable", video_id=video_id, itag=itag)
+            self._url_cache[video_id] = (None, time.time())
+            return None
 
     def _get_lock(self, video_id: str) -> asyncio.Lock:
         if video_id not in self._url_locks:
@@ -278,11 +315,19 @@ class YTMusicLibrary:
                 return alt
         return ""
 
-    async def _get_stream_url_ytdlp(self, video_id: str, itag: int) -> str:
+    async def _get_stream_url_ytdlp(
+        self,
+        video_id: str,
+        itag: int,
+        extra_args: tuple[str, ...] = (),
+    ) -> str:
         """yt-dlp extraction — the fallback stream resolver.
 
         Serialized globally so concurrent fallbacks cannot interleave their
-        rate-limit accounting.
+        rate-limit accounting. ``extra_args`` holds yt-dlp option keys to
+        escalate on retry (``force_ipv4``, ``geo_bypass``). Raises
+        ``UnresolvableStreamError`` when the track cannot be resolved so the
+        bounded retry loop in ``get_stream_url`` can try the next flag set.
         """
         async with self._global_lock:
             elapsed = time.time() - self._last_ytdlp_call
@@ -311,17 +356,27 @@ class YTMusicLibrary:
                 "skip_download": True,
                 "noplaylist": True,
             }
-            with YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(
-                    f"https://music.youtube.com/watch?v={video_id}",
-                    download=False,
-                )
-                if info and info.get("url"):
-                    return info["url"]
-                for f in info.get("formats", []) if info else []:
-                    if f.get("url"):
-                        return f["url"]
-                raise RuntimeError(f"No playable URL for itag {itag}")
+            for key in extra_args:
+                if key == "force_ipv4":
+                    opts["force_ipv4"] = True
+                elif key == "geo_bypass":
+                    opts["geo_bypass"] = True
+            try:
+                with YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(
+                        f"https://music.youtube.com/watch?v={video_id}",
+                        download=False,
+                    )
+                    if info and info.get("url"):
+                        return info["url"]
+                    for f in info.get("formats", []) if info else []:
+                        if f.get("url"):
+                            return f["url"]
+            except Exception as e:
+                raise UnresolvableStreamError(
+                    f"no playable URL for itag {itag}: {e}"
+                ) from e
+            raise UnresolvableStreamError(f"no playable URL for itag {itag}")
 
         return await asyncio.to_thread(_extract)
 

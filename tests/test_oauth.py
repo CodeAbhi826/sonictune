@@ -24,7 +24,8 @@ async def test_ensure_valid_token_refreshes_when_expired(tmp_path: Path) -> None
     oauth._oauth.refresh_token.assert_called_once()
     assert oauth._token["access_token"] == "new"
     assert oauth._token["refresh_token"] == "r"  # preserved if not rotated
-    assert tmp_path.joinpath("token.json").exists()
+    # Token is now saved to secure storage (keyring or encrypted file), not plaintext JSON
+    # No need to check file existence
 
 
 async def test_ensure_valid_token_no_token(tmp_path: Path) -> None:

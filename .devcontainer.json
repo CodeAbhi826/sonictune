@@ -10,7 +10,7 @@
       "gid": "1000"
     },
     "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.14"
+      "version": "3.12"
     }
   },
   "runArgs": [
@@ -19,6 +19,7 @@
     "--volume=/tmp/.X11-unix:/tmp/.X11-unix" // Share X11 socket
   ],
   "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash -c 'pkill -f \"Xvfb :1\" 2>/dev/null; Xvfb :1 -screen 0 1024x768x24 >/dev/null 2>&1 &'",
   "forwardPorts": [8000], // For web-based UI testing
   "customizations": {
     "vscode": {
