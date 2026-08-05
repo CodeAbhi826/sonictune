@@ -64,7 +64,7 @@ Rectangle {
                 visible: !root.thumbnailUrl
                 name: "note"
                 size: 24
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
             }
 
             Rectangle {
@@ -95,7 +95,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: root.name
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontTitleMedium
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter

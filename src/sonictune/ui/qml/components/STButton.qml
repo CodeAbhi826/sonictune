@@ -68,7 +68,7 @@ Button {
         Rectangle {
             anchors.fill: parent
             radius: Theme.radiusFull
-            color: Theme.onSurface
+            color: Theme.fgSurface
             opacity: root.enabled ? (root.pressed ? 0.30 : (root.hovered ? 0.14 : 0)) : 0
 
             Behavior on opacity {
@@ -94,13 +94,13 @@ Button {
 
         function fg(enabled): color {
             switch (root.variant) {
-            case "filled":   return enabled ? Theme.onPrimary : Theme.onSurfaceVariant
-            case "tonal":    return enabled ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
-            case "elevated": return enabled ? Theme.onSurface : Theme.onSurfaceVariant
-            case "outlined": return enabled ? Theme.primary : Theme.onSurfaceVariant
-            case "text":     return enabled ? Theme.primary : Theme.onSurfaceVariant
+            case "filled":   return enabled ? Theme.fgPrimary : Theme.fgSurfaceVariant
+            case "tonal":    return enabled ? Theme.fgSecondaryContainer : Theme.fgSurfaceVariant
+            case "elevated": return enabled ? Theme.fgSurface : Theme.fgSurfaceVariant
+            case "outlined": return enabled ? Theme.primary : Theme.fgSurfaceVariant
+            case "text":     return enabled ? Theme.primary : Theme.fgSurfaceVariant
             }
-            return enabled ? Theme.onPrimary : Theme.onSurfaceVariant
+            return enabled ? Theme.fgPrimary : Theme.fgSurfaceVariant
         }
     }
 }

@@ -96,7 +96,7 @@ Rectangle {
 
             width: listView.width
             text: modelData.text || ""
-            color: index === lyricsView.activeIndex ? Theme.primary : Theme.onSurface
+            color: index === lyricsView.activeIndex ? Theme.primary : Theme.fgSurface
             font: index === lyricsView.activeIndex ? Theme.fontTitleLarge : Theme.fontBodyLarge
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
@@ -132,13 +132,13 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             name: "lyrics"
             size: 28
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: qsTr("No lyrics found")
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontTitleMedium
             horizontalAlignment: Text.AlignHCenter
         }
@@ -147,7 +147,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             visible: lyricsView.currentTrackTitle !== ""
             text: qsTr("for \"%1\"").arg(lyricsView.currentTrackTitle)
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodyMedium
             horizontalAlignment: Text.AlignHCenter
         }

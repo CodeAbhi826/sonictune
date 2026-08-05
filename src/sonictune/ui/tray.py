@@ -1,11 +1,24 @@
 """System tray icon — allows minimize-to-tray."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import structlog
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 log = structlog.get_logger()
+
+
+def _tray_icon() -> QIcon:
+    """Resolve the tray icon: theme icon first, then SVG file fallback."""
+    icon = QIcon.fromTheme("org.sonicTune")
+    if not icon.isNull():
+        return icon
+    icon_path = Path(__file__).resolve().parents[2] / "data" / "org.sonicTune.svg"
+    if icon_path.exists():
+        return QIcon(str(icon_path))
+    return QIcon()
 
 
 class TrayIcon:
@@ -15,7 +28,7 @@ class TrayIcon:
         self._app = app
         self._window = window
 
-        self._tray = QSystemTrayIcon(QIcon.fromTheme("org.sonicTune"), app)
+        self._tray = QSystemTrayIcon(_tray_icon(), app)
         self._tray.setToolTip("SonicTune")
 
         menu = QMenu()

@@ -12,7 +12,7 @@
 // older pages (e.g. "moreVert", "favoriteBorder", "volumeHigh") are kept
 // for backwards compatibility.
 //
-// Usage: Icon { name: "play"; size: 20; color: Theme.onSurface }
+// Usage: Icon { name: "play"; size: 20; color: Theme.fgSurface }
 
 import QtQuick
 import theme 1.0
@@ -20,7 +20,7 @@ import theme 1.0
 Item {
     id: root
     property string name: "play"
-    property color color: Theme.onSurface
+    property color color: Theme.fgSurface
     property real size: 20
     property real strokeWidth: 1.8
 

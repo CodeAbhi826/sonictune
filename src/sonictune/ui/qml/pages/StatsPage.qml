@@ -82,7 +82,7 @@ Item {
                 Layout.leftMargin: Theme.space6
                 Layout.rightMargin: Theme.space6
                 Layout.topMargin: Theme.space6
-                Text { text: qsTr("Stats"); color: Theme.onSurface; font: Theme.fontHeadlineMedium }
+                Text { text: qsTr("Stats"); color: Theme.fgSurface; font: Theme.fontHeadlineMedium }
                 Item { Layout.fillWidth: true }
                 IconButton {
                     icon: "sync"
@@ -138,7 +138,7 @@ Item {
                         Text {
                             Layout.alignment: Qt.AlignHCenter
                             text: statsPage.formatHours(statsPage.totalListenMs) + "h"
-                            color: Theme.onSurface
+                            color: Theme.fgSurface
                             font.family: Theme.fontFamilyMono
                             font.pixelSize: 28
                             font.weight: Font.Medium
@@ -146,7 +146,7 @@ Item {
                         Text {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr("listened")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontLabelSmall
                         }
                     }
@@ -215,7 +215,7 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: Theme.space3
-                    Text { text: qsTr("Top tracks"); color: Theme.onSurface; font: Theme.fontTitleLarge }
+                    Text { text: qsTr("Top tracks"); color: Theme.fgSurface; font: Theme.fontTitleLarge }
                     TrackList {
                         Layout.fillWidth: true
                         tracks: statsPage.topTracks
@@ -228,7 +228,7 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: Theme.space3
-                    Text { text: qsTr("Top artists"); color: Theme.onSurface; font: Theme.fontTitleLarge }
+                    Text { text: qsTr("Top artists"); color: Theme.fgSurface; font: Theme.fontTitleLarge }
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -247,20 +247,20 @@ Item {
 
                                 Text {
                                     text: (artistRow.index + 1) + "."
-                                    color: Theme.onSurfaceVariant
+                                    color: Theme.fgSurfaceVariant
                                     font: Theme.fontMono
                                     Layout.preferredWidth: 24
                                 }
                                 Text {
                                     Layout.fillWidth: true
                                     text: artistRow.modelData.artist || ""
-                                    color: Theme.onSurface
+                                    color: Theme.fgSurface
                                     font: Theme.fontBodyLarge
                                     elide: Text.ElideRight
                                 }
                                 Text {
                                     text: String(artistRow.modelData.count || 0)
-                                    color: Theme.onSurfaceVariant
+                                    color: Theme.fgSurfaceVariant
                                     font: Theme.fontMono
                                 }
                             }
@@ -269,7 +269,7 @@ Item {
                         Text {
                             visible: statsPage.topArtists.length === 0
                             text: qsTr("No data yet")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodyMedium
                         }
                     }
@@ -288,12 +288,12 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             name: statsPage.loadError ? "warning" : "stats"
             size: 32
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
         }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: statsPage.loadError ? qsTr("Couldn't load your stats") : qsTr("No listening stats yet")
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontTitleMedium
             horizontalAlignment: Text.AlignHCenter
         }
@@ -303,7 +303,7 @@ Item {
             text: statsPage.loadError
                 ? qsTr("Try again in a moment.")
                 : qsTr("Play some music and check back to see how your listening is trending.")
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodySmall
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap

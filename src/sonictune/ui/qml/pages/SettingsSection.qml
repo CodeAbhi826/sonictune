@@ -42,14 +42,14 @@ Rectangle {
                 Icon {
                     name: section.icon
                     size: 20
-                    color: section.expanded ? Theme.primary : Theme.onSurfaceVariant
+                    color: section.expanded ? Theme.primary : Theme.fgSurfaceVariant
                     Behavior on color { enabled: !Theme.reducedMotion; ColorAnimation { duration: Theme.durFast } }
                 }
 
                 Text {
                     Layout.fillWidth: true
                     text: section.title
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     font: Theme.fontTitleMedium
                     elide: Text.ElideRight
                 }
@@ -57,7 +57,7 @@ Rectangle {
                 Icon {
                     name: "chevronDown"
                     size: 20
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     rotation: section.expanded ? 180 : 0
                     Behavior on rotation {
                         enabled: !Theme.reducedMotion

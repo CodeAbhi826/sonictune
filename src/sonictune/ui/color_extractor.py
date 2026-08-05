@@ -18,31 +18,31 @@ logger = logging.getLogger(__name__)
 class MaterialPalette:
     """Material You color palette extracted from an image."""
     primary: str
-    on_primary: str
+    fg_primary: str
     primary_container: str
-    on_primary_container: str
+    fg_primary_container: str
     secondary: str
-    on_secondary: str
+    fg_secondary: str
     secondary_container: str
-    on_secondary_container: str
+    fg_secondary_container: str
     tertiary: str
-    on_tertiary: str
+    fg_tertiary: str
     tertiary_container: str
-    on_tertiary_container: str
+    fg_tertiary_container: str
     surface: str
-    on_surface: str
+    fg_surface: str
     surface_variant: str
-    on_surface_variant: str
+    fg_surface_variant: str
     background: str
-    on_background: str
+    fg_background: str
     outline: str
     outline_variant: str
     shadow: str
     scrim: str
     error: str
-    on_error: str
+    fg_error: str
     error_container: str
-    on_error_container: str
+    fg_error_container: str
 
 
 class MaterialYouExtractor:
@@ -146,31 +146,31 @@ class MaterialYouExtractor:
 
         return MaterialPalette(
             primary=primary_tones[40],
-            on_primary=primary_tones[100],
+            fg_primary=primary_tones[100],
             primary_container=primary_tones[90],
-            on_primary_container=primary_tones[10],
+            fg_primary_container=primary_tones[10],
             secondary=secondary_tones[40],
-            on_secondary=secondary_tones[100],
+            fg_secondary=secondary_tones[100],
             secondary_container=secondary_tones[90],
-            on_secondary_container=secondary_tones[10],
+            fg_secondary_container=secondary_tones[10],
             tertiary=tertiary_tones[40],
-            on_tertiary=tertiary_tones[100],
+            fg_tertiary=tertiary_tones[100],
             tertiary_container=tertiary_tones[90],
-            on_tertiary_container=tertiary_tones[10],
+            fg_tertiary_container=tertiary_tones[10],
             surface=neutral_tones[10],
-            on_surface=neutral_tones[90],
+            fg_surface=neutral_tones[90],
             surface_variant=neutral_variant_tones[30],
-            on_surface_variant=neutral_variant_tones[80],
+            fg_surface_variant=neutral_variant_tones[80],
             background=neutral_tones[4],
-            on_background=neutral_tones[95],
+            fg_background=neutral_tones[95],
             outline=neutral_variant_tones[50],
             outline_variant=neutral_variant_tones[30],
             shadow=cls._rgb_to_hex(0, 0, 0),
             scrim=cls._rgb_to_hex(0, 0, 0),
             error=error_tones[40],
-            on_error=error_tones[100],
+            fg_error=error_tones[100],
             error_container=error_tones[90],
-            on_error_container=error_tones[10],
+            fg_error_container=error_tones[10],
         )
 
     @classmethod

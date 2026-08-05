@@ -58,12 +58,12 @@ Rectangle {
         name: root.iconName !== "" ? root.iconName : root.icon
         size: root.iconSize
         color: !root.enabled
-            ? Theme.onSurfaceVariant
+            ? Theme.fgSurfaceVariant
             : root.prominent
-                ? Theme.onPrimary
+                ? Theme.fgPrimary
                 : root.checked || root.highlighted
-                    ? Theme.onPrimaryContainer
-                    : Theme.onSurface
+                    ? Theme.fgPrimaryContainer
+                    : Theme.fgSurface
     }
 
     MouseArea {

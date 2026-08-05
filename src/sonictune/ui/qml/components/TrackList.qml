@@ -99,7 +99,7 @@ ListView {
                         anchors.centerIn: parent
                         visible: !row.isCurrent && !mouseArea.containsMouse
                         text: (row.index + 1) + "."
-                        color: Theme.onSurfaceVariant
+                        color: Theme.fgSurfaceVariant
                         font: Theme.fontMono
                     }
 
@@ -108,7 +108,7 @@ ListView {
                         visible: mouseArea.containsMouse && !row.isCurrent
                         name: "play"
                         size: 16
-                        color: Theme.onSurface
+                        color: Theme.fgSurface
                     }
 
                     Icon {
@@ -141,7 +141,7 @@ ListView {
                         visible: !row.trackThumbnail
                         name: "note"
                         size: 16
-                        color: Theme.onSurfaceVariant
+                        color: Theme.fgSurfaceVariant
                     }
                 }
 
@@ -152,7 +152,7 @@ ListView {
                     Text {
                         Layout.fillWidth: true
                         text: row.trackTitle
-                        color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurface
+                        color: row.isCurrent ? Theme.fgPrimaryContainer : Theme.fgSurface
                         font: Theme.fontBodyLarge
                         elide: Text.ElideRight
                     }
@@ -160,7 +160,7 @@ ListView {
                     Text {
                         Layout.fillWidth: true
                         text: row.trackArtist + (row.trackAlbum ? "  ·  " + row.trackAlbum : "")
-                        color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                        color: row.isCurrent ? Theme.fgPrimaryContainer : Theme.fgSurfaceVariant
                         font: Theme.fontBodySmall
                         elide: Text.ElideRight
                     }
@@ -168,7 +168,7 @@ ListView {
 
                 Text {
                     text: root.formatTime(row.trackDuration)
-                    color: row.isCurrent ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                    color: row.isCurrent ? Theme.fgPrimaryContainer : Theme.fgSurfaceVariant
                     font: Theme.fontMono
                     Layout.preferredWidth: 44
                     horizontalAlignment: Text.AlignRight
@@ -179,7 +179,7 @@ ListView {
                     Layout.preferredHeight: 30
                     visible: mouseArea.containsMouse
 
-                    Icon { anchors.centerIn: parent; name: "add"; size: 16; color: Theme.onSurfaceVariant }
+                    Icon { anchors.centerIn: parent; name: "add"; size: 16; color: Theme.fgSurfaceVariant }
 
                     MouseArea {
                         anchors.fill: parent
@@ -231,11 +231,11 @@ ListView {
         visible: root.showEmptyState && root.empty
         spacing: Theme.space2
 
-        Icon { Layout.alignment: Qt.AlignHCenter; name: root.emptyIcon; size: 28; color: Theme.onSurfaceVariant }
+        Icon { Layout.alignment: Qt.AlignHCenter; name: root.emptyIcon; size: 28; color: Theme.fgSurfaceVariant }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root.emptyMessage
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodyMedium
         }
         STButton {

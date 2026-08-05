@@ -69,7 +69,7 @@ Page {
 
             Text {
                 text: qsTr("Local Library")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontHeadlineSmall
                 Layout.fillWidth: true
             }
@@ -130,7 +130,7 @@ Page {
             Label {
                 anchors.centerIn: parent
                 text: qsTr("Albums view coming soon")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodyLarge
             }
         }
@@ -140,7 +140,7 @@ Page {
             Label {
                 anchors.centerIn: parent
                 text: qsTr("Artists view coming soon")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodyLarge
             }
         }
@@ -150,7 +150,7 @@ Page {
             Label {
                 anchors.centerIn: parent
                 text: qsTr("Folders view coming soon")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodyLarge
             }
         }
@@ -182,13 +182,13 @@ Page {
 
                 Text {
                     text: qsTr("Scanning: %1").arg(localLibraryPage.scanPath)
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     font: Theme.fontBodyMedium
                 }
 
                 Text {
                     text: qsTr("%1 / %2").arg(localLibraryPage.scanProcessed).arg(localLibraryPage.scanTotal)
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodyMedium
                 }
             }
@@ -213,7 +213,7 @@ Page {
 
             Text {
                 text: qsTr("Select a folder to scan for audio files:")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontBodyLarge
                 Layout.fillWidth: true
             }
@@ -275,20 +275,20 @@ Page {
             Icon {
                 name: "musicNote"
                 size: 48
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Text {
                 text: qsTr("No local tracks found")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleLarge
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Text {
                 text: qsTr("Scan your music folders to add local tracks to your library")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodyMedium
                 Layout.alignment: Qt.AlignHCenter
                 horizontalAlignment: Text.AlignHCenter

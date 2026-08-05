@@ -24,10 +24,10 @@ Rectangle {
 
         RowLayout {
             spacing: Theme.space2
-            Icon { name: card.icon; size: 14; color: Theme.onSurfaceVariant }
+            Icon { name: card.icon; size: 14; color: Theme.fgSurfaceVariant }
             Text {
                 text: card.title.length > 0 ? card.title : card.label
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontLabelSmall
                 elide: Text.ElideRight
             }
@@ -37,7 +37,7 @@ Rectangle {
 
         Text {
             text: card.value
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font.family: Theme.fontFamilyMono
             font.pixelSize: 26
             font.weight: Font.Medium
@@ -46,7 +46,7 @@ Rectangle {
         Text {
             visible: card.subtitle.length > 0
             text: card.subtitle
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodySmall
             elide: Text.ElideRight
         }

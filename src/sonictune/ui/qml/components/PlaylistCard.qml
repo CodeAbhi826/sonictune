@@ -65,7 +65,7 @@ Rectangle {
                 visible: !root.thumbnailUrl
                 name: "queue"
                 size: 24
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
             }
 
             Rectangle {
@@ -95,7 +95,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: root.title
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontTitleMedium
             elide: Text.ElideRight
         }
@@ -103,7 +103,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: qsTr("%n track(s)", "", root.trackCount)
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodySmall
             elide: Text.ElideRight
         }

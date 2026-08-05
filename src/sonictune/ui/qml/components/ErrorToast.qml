@@ -67,7 +67,7 @@ Item {
             Text {
                 width: parent.width - 24
                 text: toast.message
-                color: Theme.onErrorContainer
+                color: Theme.fgErrorContainer
                 font: Theme.fontBodyMedium
                 elide: Text.ElideRight
             }

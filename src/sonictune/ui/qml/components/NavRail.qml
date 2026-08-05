@@ -44,7 +44,7 @@ Rectangle {
                 radius: Theme.radiusFull
                 color: Theme.primary
 
-                Icon { anchors.centerIn: parent; name: "note"; size: 20; color: Theme.onPrimary }
+                Icon { anchors.centerIn: parent; name: "note"; size: 20; color: Theme.fgPrimary }
             }
         }
 
@@ -82,7 +82,7 @@ Rectangle {
                             Layout.alignment: Qt.AlignHCenter
                             name: navItem.modelData.icon
                             size: 20
-                            color: navItem.active ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                            color: navItem.active ? Theme.fgPrimaryContainer : Theme.fgSurfaceVariant
                             Behavior on color {
                                 enabled: !Theme.reducedMotion
                                 ColorAnimation { duration: Theme.durFast }
@@ -93,7 +93,7 @@ Rectangle {
                             Layout.alignment: Qt.AlignHCenter
                             text: navItem.modelData.label
                             font: Theme.fontLabelMedium
-                            color: navItem.active ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                            color: navItem.active ? Theme.fgPrimaryContainer : Theme.fgSurfaceVariant
                             Behavior on color {
                                 enabled: !Theme.reducedMotion
                                 ColorAnimation { duration: Theme.durFast }
@@ -110,7 +110,7 @@ Rectangle {
                                 var targetUrl = navItem.modelData.url
                                 if (navRail.stackView.currentItem && navRail.stackView.currentItem.url === targetUrl) {
                                     // Already on this page, pop to root
-                                    navRail.stackView.pop(null, StackView.Immediate)
+                                    navRail.stackView.pop(null, navRail.stackView.Immediate)
                                 } else {
                                     // Navigate to the page
                                     navRail.stackView.replace(targetUrl)

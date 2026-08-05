@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 import time
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -37,7 +38,6 @@ from sonictune.player.sleep_timer import SleepTimer
 from sonictune.player.sponsorblock import SponsorBlock
 from sonictune.stats.aggregator import StatsAggregator
 from sonictune.ui.color_extractor import MaterialYouExtractor
-from sonictune.ui.shortcuts import ShortcutManager
 
 if TYPE_CHECKING:
     from sonictune.player.mpv_player import MpvPlayer
@@ -46,6 +46,23 @@ from sonictune.ui.daemon_proxy import DaemonProxy
 from sonictune.ui.imageprovider import ArtImageProvider
 
 log = structlog.get_logger()
+
+
+def _camel(s: str) -> str:
+    """snake_case -> camelCase."""
+    head, *rest = s.split("_")
+    return head + "".join(p.capitalize() for p in rest)
+
+
+def _palette_to_qml_dict(palette: Any) -> dict[str, str]:
+    """Serialize a MaterialPalette dataclass into a camelCase dict for QML."""
+    if is_dataclass(palette):
+        raw = asdict(palette)
+    elif isinstance(palette, dict):
+        raw = palette
+    else:
+        return {}
+    return {_camel(k): v for k, v in raw.items() if isinstance(v, str)}
 
 
 class SonicTuneApp:
@@ -114,7 +131,6 @@ class SonicTuneApp:
         self.sleep_timer: SleepTimer | None = None
         self.sponsorblock: SponsorBlock | None = None
         self.color_extractor: MaterialYouExtractor | None = None
-        self.shortcuts: ShortcutManager | None = None
         self.sync: LibrarySync | None = None
 
         # QML-facing proxy
@@ -418,9 +434,9 @@ class SonicTuneApp:
             path = await original_get_path(url)
             if path and path.exists():
                 try:
-                    palette = await asyncio.to_thread(self.color_extractor.extract, path)
+                    palette = await self.color_extractor.extract_palette(path)
                     if palette and self.daemon:
-                        self.daemon.dynamicPaletteChanged.emit(palette)
+                        self.daemon.dynamicPaletteChanged.emit(_palette_to_qml_dict(palette))
                 except Exception as e:
                     log.warning("color_extractor.failed", error=str(e))
             return path
@@ -525,23 +541,11 @@ class SonicTuneApp:
         self._tray = TrayIcon(self.app, self._engine.rootObjects()[0])
         self._tray.show()
 
-    def _setup_shortcuts(self) -> None:
-        """Set up keyboard shortcuts."""
-        if not self.daemon or not self._engine:
-            return
-        self.shortcuts = ShortcutManager(
-            self._engine.rootObjects()[0],
-            self.daemon
-        )
-        self.shortcuts.register(self.config.shortcuts)
-        log.info("shortcuts.wired")
-
     async def run(self) -> int:
         """Run the application."""
         await self._init_services()
         self._setup_qml()
         self._setup_tray()
-        self._setup_shortcuts()
         return 0
 
     async def shutdown(self) -> None:

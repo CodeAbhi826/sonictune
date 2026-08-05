@@ -16,7 +16,7 @@ QtObject {
 
     // MATERIAL 3 DARK SURFACES
     property color background:             "#0F0F0F"
-    property color onBackground:           "#E6E1E5"
+    property color fgBackground:           "#E6E1E5"
     property color surface:                "#1C1B1F"
     property color surfaceDim:             "#141218"
     property color surfaceBright:          "#3B383E"
@@ -26,33 +26,33 @@ QtObject {
     property color surfaceContainerHigh:   "#2B2930"
     property color surfaceContainerHighest:"#36343B"
     property color surfaceVariant:         "#49454F"
-    property color onSurface:              "#E6E1E5"
-    property color onSurfaceVariant:       "#CAC4D0"
+    property color fgSurface:              "#E6E1E5"
+    property color fgSurfaceVariant:       "#CAC4D0"
 
     // MATERIAL 3 PRIMARY (Purple accent)
     property color primary:                "#D0BCFF"
-    property color onPrimary:              "#381E72"   // dark text on light-lavender primary
+    property color fgPrimary:              "#381E72"   // dark text on light-lavender primary
     property color primaryContainer:       "#4F378B"
-    property color onPrimaryContainer:     "#EADDFF"
+    property color fgPrimaryContainer:     "#EADDFF"
     property color inversePrimary:         "#6750A4"
 
     // MATERIAL 3 SECONDARY
     property color secondary:              "#CCC2DC"
-    property color onSecondary:            "#332D41"
+    property color fgSecondary:            "#332D41"
     property color secondaryContainer:     "#4A4458"
-    property color onSecondaryContainer:   "#E8DEF8"
+    property color fgSecondaryContainer:   "#E8DEF8"
 
     // MATERIAL 3 TERTIARY (Pink accent)
     property color tertiary:               "#EFB8C8"
-    property color onTertiary:             "#492532"
+    property color fgTertiary:             "#492532"
     property color tertiaryContainer:      "#633B48"
-    property color onTertiaryContainer:    "#FFD8E4"
+    property color fgTertiaryContainer:    "#FFD8E4"
 
     // MATERIAL 3 ERROR
     property color error:                  "#F2B8B5"
-    property color onError:                "#601410"
+    property color fgError:                "#601410"
     property color errorContainer:         "#8C1D18"
-    property color onErrorContainer:       "#F9DEDC"
+    property color fgErrorContainer:       "#F9DEDC"
 
     // OUTLINES
     property color outline:                "#938F99"
@@ -73,36 +73,36 @@ QtObject {
         if (!palette) return
 
         theme.primary = palette.primary || theme.primary
-        theme.onPrimary = palette.onPrimary || theme.onPrimary
+        theme.fgPrimary = palette.fgPrimary || theme.fgPrimary
         theme.primaryContainer = palette.primaryContainer || theme.primaryContainer
-        theme.onPrimaryContainer = palette.onPrimaryContainer || theme.onPrimaryContainer
+        theme.fgPrimaryContainer = palette.fgPrimaryContainer || theme.fgPrimaryContainer
         theme.inversePrimary = palette.inversePrimary || theme.inversePrimary
 
         theme.secondary = palette.secondary || theme.secondary
-        theme.onSecondary = palette.onSecondary || theme.onSecondary
+        theme.fgSecondary = palette.fgSecondary || theme.fgSecondary
         theme.secondaryContainer = palette.secondaryContainer || theme.secondaryContainer
-        theme.onSecondaryContainer = palette.onSecondaryContainer || theme.onSecondaryContainer
+        theme.fgSecondaryContainer = palette.fgSecondaryContainer || theme.fgSecondaryContainer
 
         theme.tertiary = palette.tertiary || theme.tertiary
-        theme.onTertiary = palette.onTertiary || theme.onTertiary
+        theme.fgTertiary = palette.fgTertiary || theme.fgTertiary
         theme.tertiaryContainer = palette.tertiaryContainer || theme.tertiaryContainer
-        theme.onTertiaryContainer = palette.onTertiaryContainer || theme.onTertiaryContainer
+        theme.fgTertiaryContainer = palette.fgTertiaryContainer || theme.fgTertiaryContainer
 
         theme.surface = palette.surface || theme.surface
-        theme.onSurface = palette.onSurface || theme.onSurface
+        theme.fgSurface = palette.fgSurface || theme.fgSurface
         theme.surfaceVariant = palette.surfaceVariant || theme.surfaceVariant
-        theme.onSurfaceVariant = palette.onSurfaceVariant || theme.onSurfaceVariant
+        theme.fgSurfaceVariant = palette.fgSurfaceVariant || theme.fgSurfaceVariant
 
         theme.background = palette.background || theme.background
-        theme.onBackground = palette.onBackground || theme.onBackground
+        theme.fgBackground = palette.fgBackground || theme.fgBackground
 
         theme.outline = palette.outline || theme.outline
         theme.outlineVariant = palette.outlineVariant || theme.outlineVariant
 
         theme.error = palette.error || theme.error
-        theme.onError = palette.onError || theme.onError
+        theme.fgError = palette.fgError || theme.fgError
         theme.errorContainer = palette.errorContainer || theme.errorContainer
-        theme.onErrorContainer = palette.onErrorContainer || theme.onErrorContainer
+        theme.fgErrorContainer = palette.fgErrorContainer || theme.fgErrorContainer
 
         theme.playerProgress = palette.primary || theme.playerProgress
         theme.playerBarBg = palette.surface || theme.playerBarBg

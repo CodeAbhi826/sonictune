@@ -160,7 +160,7 @@ Item {
 
             Text {
                 text: qsTr("Now Playing")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontLabelMedium
             }
 
@@ -216,7 +216,7 @@ Item {
                             visible: !nowPlayingPage.currentTrack.thumbnail_url
                             name: "album"
                             size: 48
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                         }
                     }
 
@@ -227,7 +227,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: nowPlayingPage.currentTrack.title || qsTr("Nothing playing")
-                            color: Theme.onSurface
+                            color: Theme.fgSurface
                             font: Theme.fontHeadlineMedium
                             elide: Text.ElideRight
                             horizontalAlignment: Text.AlignHCenter
@@ -235,7 +235,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: nowPlayingPage.currentTrack.artist || ""
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodyLarge
                             elide: Text.ElideRight
                             horizontalAlignment: Text.AlignHCenter
@@ -255,13 +255,13 @@ Item {
                         Layout.fillWidth: true
                         Text {
                             text: Theme.formatDuration(nowPlayingPage.positionMs)
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontMono
                         }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: "-" + Theme.formatDuration(Math.max(0, nowPlayingPage.durationMs - nowPlayingPage.positionMs))
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontMono
                         }
                     }
@@ -325,7 +325,7 @@ Item {
 
                         Text {
                             text: nowPlayingPage.qualityText()
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontLabelMedium
                         }
 
@@ -354,7 +354,7 @@ Item {
                         text: nowPlayingPage.sleepAtTrackEnd
                             ? qsTr("Sleep at end of track")
                             : qsTr("Sleep in %1").arg(Theme.formatDuration(nowPlayingPage.sleepTimerRemainingMs))
-                        color: Theme.onSurfaceVariant
+                        color: Theme.fgSurfaceVariant
                         font: Theme.fontLabelMedium
                     }
                 }
@@ -395,7 +395,7 @@ Item {
 
             Text {
                 text: qsTr("Playback speed")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleMedium
             }
 
@@ -436,7 +436,7 @@ Item {
 
             Text {
                 text: qsTr("Sleep timer")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleMedium
             }
 

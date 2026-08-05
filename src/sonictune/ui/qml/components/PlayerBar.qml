@@ -106,7 +106,7 @@ Rectangle {
                     visible: playerBar.thumbUrl === ""
                     name: "musicNote"
                     size: 20
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                 }
             }
 
@@ -126,7 +126,7 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: playerBar.currentTrack.title || qsTr("Nothing playing")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleMedium
                 elide: Text.ElideRight
             }
@@ -134,7 +134,7 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: playerBar.currentTrack.artist || qsTr("Pick something to play")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodySmall
                 elide: Text.ElideRight
             }
@@ -154,13 +154,13 @@ Rectangle {
 
                 Text {
                     text: Theme.formatDurationShort(playerBar.positionMs)
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontMono
                 }
 
                 Text {
                     text: "/" + Theme.formatDuration(playerBar.durationMs)
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontMono
                 }
             }
@@ -202,7 +202,7 @@ Rectangle {
                     anchors.centerIn: parent
                     name: playerBar.isPlaying ? "pause" : "play"
                     size: 22
-                    color: Theme.onPrimary
+                    color: Theme.fgPrimary
                 }
 
                 MouseArea {

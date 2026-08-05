@@ -45,13 +45,13 @@ Item {
                 spacing: 0
                 Text {
                     text: detailPage.playlistTitle || qsTr("Playlist")
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     font: Theme.fontHeadlineSmall
                     elide: Text.ElideRight
                 }
                 Text {
                     text: qsTr("%n track(s)", "", detailPage.tracks.length)
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodySmall
                 }
             }

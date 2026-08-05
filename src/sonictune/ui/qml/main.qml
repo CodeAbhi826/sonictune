@@ -27,7 +27,7 @@ ApplicationWindow {
     Material.theme: Material.Dark
     Material.accent: Theme.primary
     Material.primary: Theme.primary
-    Material.foreground: Theme.onSurface
+    Material.foreground: Theme.fgSurface
     Material.background: Theme.background
 
     property int cachedVolume: 80
@@ -165,13 +165,16 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+L"
         onActivated: {
-            contentStack.currentIndex = 1 // Search
-            searchPage.focusSearch()
+            if (nowPlayingDrawer.open) { nowPlayingDrawer.close() }
+            else { nowPlayingDrawer.open() }
         }
     }
     Shortcut {
         sequence: "Ctrl+Q"
-        onActivated: queueDrawer.open()
+        onActivated: {
+            if (queueDrawer.open) { queueDrawer.close() }
+            else { queueDrawer.open() }
+        }
     }
     Shortcut {
         sequence: "Ctrl+M"
@@ -179,7 +182,13 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Ctrl+F"
-        onActivated: contentStack.currentIndex = 1 // Search
+        onActivated: {
+            if (contentStack.currentItem && contentStack.currentItem.objectName === "searchPage") {
+                contentStack.currentItem.focusSearch()
+            } else {
+                Router.pushPage("pages/SearchPage.qml")
+            }
+        }
     }
 
     Connections {

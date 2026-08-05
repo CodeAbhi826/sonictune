@@ -49,7 +49,7 @@ Item {
                     anchors.centerIn: parent
                     name: "album"
                     size: 24
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                 }
             }
             
@@ -61,7 +61,7 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: root.currentTrackTitle || qsTr("Unknown track")
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     font: Theme.fontTitleLarge
                     elide: Text.ElideRight
                 }
@@ -69,7 +69,7 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: root.currentTrackArtist || qsTr("Unknown artist")
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodyMedium
                     elide: Text.ElideRight
                 }
@@ -77,7 +77,7 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: root.currentTrackAlbum || ""
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodySmall
                     elide: Text.ElideRight
                 }
@@ -127,7 +127,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: lyricLine.modelData.text || ""
-                color: lyricLine.isActive ? Theme.primary : Theme.onSurface
+                color: lyricLine.isActive ? Theme.primary : Theme.fgSurface
                 font: lyricLine.isActive ? Theme.fontTitleMedium : Theme.fontBodyLarge
                 horizontalAlignment: Text.AlignHCenter
                 width: parent.width - Theme.space8
@@ -178,20 +178,20 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 name: "lyrics"
                 size: 48
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
             }
             
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("No lyrics available")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleLarge
             }
             
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Lyrics will appear here when available")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodyMedium
                 width: 300
                 horizontalAlignment: Text.AlignHCenter

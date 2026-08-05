@@ -15,8 +15,8 @@ def test_theme_background_color() -> None:
 
 
 def test_theme_on_surface_color() -> None:
-    """T-002: Theme onSurface is light gray (not black)."""
-    assert Theme.onSurface == "#E6E1E5"
+    """T-002: Theme fgSurface is light gray (not black)."""
+    assert Theme.fgSurface == "#E6E1E5"
 
 
 def test_theme_primary_color() -> None:
@@ -72,7 +72,7 @@ def test_theme_tokens_in_sync() -> None:
     qml_lower = {k.lower(): v for k, v in qml_colors.items()}
 
     # Intentional aliases that exist only on the Python side (not QML-facing).
-    allowed_missing = {"onsurfacemuted"}
+    allowed_missing = {"fgsurfacemuted"}
 
     missing_in_qml = sorted(
         name for name in py_colors if name.lower() not in qml_lower

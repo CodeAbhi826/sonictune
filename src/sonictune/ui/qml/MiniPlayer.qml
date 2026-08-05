@@ -67,7 +67,7 @@ Rectangle {
                 visible: !root.currentTrack.thumbnail_url
                 name: "note"
                 size: 20
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
             }
         }
 
@@ -80,7 +80,7 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: root.currentTrack.title || qsTr("Nothing playing")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontBodyMedium
                 elide: Text.ElideRight
                 maximumLineCount: 1
@@ -88,7 +88,7 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: root.currentTrack.artist || ""
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodySmall
                 elide: Text.ElideRight
                 maximumLineCount: 1

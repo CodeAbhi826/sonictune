@@ -101,14 +101,14 @@ Dialog {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Text { text: qsTr("Sign in to YouTube Music"); color: Theme.onSurface; font: Theme.fontTitleLarge }
-                Text { text: qsTr("Uses YouTube's TV device sign-in flow"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                Text { text: qsTr("Sign in to YouTube Music"); color: Theme.fgSurface; font: Theme.fontTitleLarge }
+                Text { text: qsTr("Uses YouTube's TV device sign-in flow"); color: Theme.fgSurfaceVariant; font: Theme.fontBodySmall }
             }
 
             Item {
                 Layout.preferredWidth: 28
                 Layout.preferredHeight: 28
-                Icon { anchors.centerIn: parent; name: "close"; size: 14; color: Theme.onSurfaceVariant }
+                Icon { anchors.centerIn: parent; name: "close"; size: 14; color: Theme.fgSurfaceVariant }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: dialog.close() }
             }
         }
@@ -129,7 +129,7 @@ Dialog {
                 Text {
                     Layout.fillWidth: true
                     text: qsTr("You'll need a free YouTube Data API OAuth client (client ID + secret) from Google Cloud Console — the same one-time setup any YTMusic OAuth tool needs.")
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodySmall
                     wrapMode: Text.Wrap
                 }
@@ -145,22 +145,22 @@ Dialog {
                     }
                 }
 
-                Label { text: qsTr("Client ID"); color: Theme.onSurfaceVariant; font: Theme.fontLabelSmall }
+                Label { text: qsTr("Client ID"); color: Theme.fgSurfaceVariant; font: Theme.fontLabelSmall }
                 TextField {
                     id: clientIdField
                     Layout.fillWidth: true
                     placeholderText: qsTr("xxxxxxxx.apps.googleusercontent.com")
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     Material.accent: Theme.primary
                 }
 
-                Label { text: qsTr("Client secret"); color: Theme.onSurfaceVariant; font: Theme.fontLabelSmall }
+                Label { text: qsTr("Client secret"); color: Theme.fgSurfaceVariant; font: Theme.fontLabelSmall }
                 TextField {
                     id: clientSecretField
                     Layout.fillWidth: true
                     placeholderText: qsTr("GOCSPX-…")
                     echoMode: TextInput.Password
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     Material.accent: Theme.primary
                 }
 
@@ -187,7 +187,7 @@ Dialog {
                 Text {
                     Layout.fillWidth: true
                     text: qsTr("Go to %1 and enter this code:").arg(dialog.verificationUrl)
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodyMedium
                     wrapMode: Text.Wrap
                 }
@@ -234,7 +234,7 @@ Dialog {
                     spacing: Theme.space2
                     visible: dialog.polling
                     BusyIndicator { implicitWidth: 18; implicitHeight: 18; running: dialog.polling; Material.accent: Theme.primary }
-                    Text { text: dialog.statusMessage; color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                    Text { text: dialog.statusMessage; color: Theme.fgSurfaceVariant; font: Theme.fontBodySmall }
                 }
             }
 

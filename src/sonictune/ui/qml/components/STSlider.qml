@@ -49,7 +49,7 @@ Slider {
             width: 4
             height: 4
             radius: 2
-            color: Theme.onPrimary
+            color: Theme.fgPrimary
         }
     }
 }

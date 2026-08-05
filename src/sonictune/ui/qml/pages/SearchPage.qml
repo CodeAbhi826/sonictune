@@ -10,6 +10,7 @@ import "../router"
 
 Item {
     id: searchPage
+    objectName: "searchPage"
 
     property var results: []
     property var recentSearches: []
@@ -83,7 +84,7 @@ Item {
 
         Text {
             text: qsTr("Search")
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontHeadlineMedium
         }
 
@@ -102,16 +103,16 @@ Item {
                 anchors.rightMargin: Theme.space3
                 spacing: Theme.space2
 
-                Icon { name: "search"; size: 18; color: Theme.onSurfaceVariant }
+                Icon { name: "search"; size: 18; color: Theme.fgSurfaceVariant }
 
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     placeholderText: qsTr("Search songs, albums, artists, playlists…")
-                    placeholderTextColor: Theme.onSurfaceVariant
+                    placeholderTextColor: Theme.fgSurfaceVariant
                     background: Item {}
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     selectionColor: Theme.primaryContainer
                     onTextChanged: {
                         debounce.restart()
@@ -159,7 +160,7 @@ Item {
                         id: filterLabel
                         anchors.centerIn: parent
                         text: filterChip.modelData.label
-                        color: filterChip.active ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                        color: filterChip.active ? Theme.fgPrimaryContainer : Theme.fgSurfaceVariant
                         font: Theme.fontLabelLarge
                     }
 
@@ -185,7 +186,7 @@ Item {
 
             Text {
                 text: qsTr("Recent searches")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontLabelMedium
             }
 
@@ -209,11 +210,11 @@ Item {
                         RowLayout {
                             anchors.centerIn: parent
                             spacing: Theme.space2
-                            Icon { name: "clock"; size: 13; color: Theme.onSurfaceVariant }
+                            Icon { name: "clock"; size: 13; color: Theme.fgSurfaceVariant }
                             Text {
                                 id: recentLabel
                                 text: recentChip.modelData.query || ""
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontBodySmall
                             }
                         }
@@ -248,7 +249,7 @@ Item {
                     spacing: Theme.space2
                     visible: searchPage.songResults.length > 0
 
-                    Text { text: qsTr("Songs"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Text { text: qsTr("Songs"); color: Theme.fgSurfaceVariant; font: Theme.fontLabelMedium }
                     TrackList {
                         Layout.fillWidth: true
                         tracks: searchPage.songResults
@@ -263,7 +264,7 @@ Item {
                     spacing: Theme.space2
                     visible: searchPage.albumResults.length > 0
 
-                    Text { text: qsTr("Albums"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Text { text: qsTr("Albums"); color: Theme.fgSurfaceVariant; font: Theme.fontLabelMedium }
                     Flow {
                         Layout.fillWidth: true
                         spacing: Theme.space4
@@ -286,7 +287,7 @@ Item {
                     spacing: Theme.space2
                     visible: searchPage.artistResults.length > 0
 
-                    Text { text: qsTr("Artists"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Text { text: qsTr("Artists"); color: Theme.fgSurfaceVariant; font: Theme.fontLabelMedium }
                     Flow {
                         Layout.fillWidth: true
                         spacing: Theme.space4
@@ -308,7 +309,7 @@ Item {
                     spacing: Theme.space2
                     visible: searchPage.playlistResults.length > 0
 
-                    Text { text: qsTr("Playlists"); color: Theme.onSurfaceVariant; font: Theme.fontLabelMedium }
+                    Text { text: qsTr("Playlists"); color: Theme.fgSurfaceVariant; font: Theme.fontLabelMedium }
                     Flow {
                         Layout.fillWidth: true
                         spacing: Theme.space4
@@ -342,12 +343,12 @@ delegate: PlaylistCard {
             spacing: Theme.space3
             width: 320
 
-            Icon { Layout.alignment: Qt.AlignHCenter; name: "search"; size: 32; color: Theme.onSurfaceVariant }
+            Icon { Layout.alignment: Qt.AlignHCenter; name: "search"; size: 32; color: Theme.fgSurfaceVariant }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 text: qsTr("No results for \"%1\"").arg(searchPage.lastQuery)
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleMedium
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
@@ -355,7 +356,7 @@ delegate: PlaylistCard {
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Try a different search, or browse the home feed.")
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodySmall
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -369,12 +370,12 @@ delegate: PlaylistCard {
             spacing: Theme.space3
             width: 320
 
-            Icon { Layout.alignment: Qt.AlignHCenter; name: "warning"; size: 32; color: Theme.onSurfaceVariant }
+            Icon { Layout.alignment: Qt.AlignHCenter; name: "warning"; size: 32; color: Theme.fgSurfaceVariant }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 text: qsTr("Search failed")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleMedium
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -382,7 +383,7 @@ delegate: PlaylistCard {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 text: searchPage.searchErrorMessage
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodySmall
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap

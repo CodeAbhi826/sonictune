@@ -15,7 +15,8 @@
 
 ## Changelog Rule
 
-- **Update `CHANGELOG.md` after every change**: After implementing fixes, features, or refactors, update the changelog with:
+- **Update `docs/CHANGELOG.md` after every change**: After implementing fixes,
+  features, or refactors, update the changelog with:
   - A concise summary of the change.
   - Links to relevant issues/PRs.
   - Impacts on MCP or visual testing (if applicable).

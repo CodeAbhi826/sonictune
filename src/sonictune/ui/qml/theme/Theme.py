@@ -21,7 +21,7 @@ class Theme:
 
     # MATERIAL 3 DARK SURFACES
     background = "#0F0F0F"
-    on_background = "#E6E1E5"
+    fg_background = "#E6E1E5"
     surface = "#1C1B1F"
     surface_dim = "#141218"
     surface_bright = "#3B383E"
@@ -31,33 +31,33 @@ class Theme:
     surface_container_high = "#2B2930"
     surface_container_highest = "#36343B"
     surface_variant = "#49454F"
-    on_surface = "#E6E1E5"
-    on_surface_variant = "#CAC4D0"
+    fg_surface = "#E6E1E5"
+    fg_surface_variant = "#CAC4D0"
 
     # PRIMARY
     primary = "#D0BCFF"
-    on_primary = "#381E72"
+    fg_primary = "#381E72"
     primary_container = "#4F378B"
-    on_primary_container = "#EADDFF"
+    fg_primary_container = "#EADDFF"
     inverse_primary = "#6750A4"
 
     # SECONDARY
     secondary = "#CCC2DC"
-    on_secondary = "#332D41"
+    fg_secondary = "#332D41"
     secondary_container = "#4A4458"
-    on_secondary_container = "#E8DEF8"
+    fg_secondary_container = "#E8DEF8"
 
     # TERTIARY
     tertiary = "#EFB8C8"
-    on_tertiary = "#492532"
+    fg_tertiary = "#492532"
     tertiary_container = "#633B48"
-    on_tertiary_container = "#FFD8E4"
+    fg_tertiary_container = "#FFD8E4"
 
     # ERROR
     error = "#F2B8B5"
-    on_error = "#601410"
+    fg_error = "#601410"
     error_container = "#8C1D18"
-    on_error_container = "#F9DEDC"
+    fg_error_container = "#F9DEDC"
 
     # OUTLINES
     outline = "#938F99"
@@ -73,9 +73,9 @@ class Theme:
     # assert on the QML-facing names (e.g. ``reducedMotion``) directly.
     reducedMotion = reduced_motion
     lowEndMode = low_end_mode
-    onSurface = on_surface
-    onSurfaceVariant = on_surface_variant
-    onSurfaceMuted = on_surface_variant
+    fgSurface = fg_surface
+    fgSurfaceVariant = fg_surface_variant
+    fgSurfaceMuted = fg_surface_variant
 
 
 __all__ = ["Theme"]

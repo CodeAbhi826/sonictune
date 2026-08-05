@@ -66,7 +66,7 @@ Rectangle {
                 visible: !root.thumbnailUrl
                 name: "album"
                 size: 30
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
             }
 
             Rectangle {
@@ -109,14 +109,14 @@ Rectangle {
                     NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
                 }
 
-                Icon { anchors.centerIn: parent; anchors.horizontalCenterOffset: 1; name: "play"; size: 18; color: Theme.onPrimary }
+                Icon { anchors.centerIn: parent; anchors.horizontalCenterOffset: 1; name: "play"; size: 18; color: Theme.fgPrimary }
             }
         }
 
         Text {
             Layout.fillWidth: true
             text: root.title
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontBodyMedium
             elide: Text.ElideRight
         }
@@ -124,7 +124,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: root.subtitle
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodySmall
             elide: Text.ElideRight
         }

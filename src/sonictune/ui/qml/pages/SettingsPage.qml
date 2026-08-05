@@ -77,7 +77,7 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            Text { text: qsTr("Settings"); color: Theme.onSurface; font: Theme.fontHeadlineMedium }
+            Text { text: qsTr("Settings"); color: Theme.fgSurface; font: Theme.fontHeadlineMedium }
             Item { Layout.fillWidth: true }
         }
 
@@ -107,13 +107,13 @@ Item {
                             Layout.fillWidth: true
                             Text {
                                 text: qsTr("Audio quality")
-                                color: Theme.onSurface
+                                color: Theme.fgSurface
                                 font: Theme.fontTitleMedium
                             }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: settingsPage.qualityLabel()
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontBodySmall
                                 visible: settingsPage.audioQuality === "high"
                             }
@@ -145,7 +145,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: qualityPill.modelData.label
-                                        color: qualityPill.active ? Theme.onPrimaryContainer : Theme.onSurface
+                                        color: qualityPill.active ? Theme.fgPrimaryContainer : Theme.fgSurface
                                         font: Theme.fontLabelLarge
                                     }
 
@@ -173,12 +173,12 @@ Item {
                                 anchors.rightMargin: Theme.space4
                                 spacing: Theme.space3
 
-                                Icon { name: "speaker"; size: 18; color: Theme.onSurfaceVariant }
+                                Icon { name: "speaker"; size: 18; color: Theme.fgSurfaceVariant }
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 0
-                                    Text { text: qsTr("Output device"); color: Theme.onSurface; font: Theme.fontBodyMedium }
-                                    Text { text: qsTr("Coming soon"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                                    Text { text: qsTr("Output device"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
+                                    Text { text: qsTr("Coming soon"); color: Theme.fgSurfaceVariant; font: Theme.fontBodySmall }
                                 }
                             }
                         }
@@ -196,12 +196,12 @@ Item {
                                 anchors.rightMargin: Theme.space4
                                 spacing: Theme.space3
 
-                                Icon { name: "memory"; size: 18; color: Theme.onSurfaceVariant }
+                                Icon { name: "memory"; size: 18; color: Theme.fgSurfaceVariant }
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 0
-                                    Text { text: qsTr("Hardware acceleration"); color: Theme.onSurface; font: Theme.fontBodyMedium }
-                                    Text { text: qsTr("Auto (VAAPI/NVDEC)"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                                    Text { text: qsTr("Hardware acceleration"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
+                                    Text { text: qsTr("Auto (VAAPI/NVDEC)"); color: Theme.fgSurfaceVariant; font: Theme.fontBodySmall }
                                 }
                             }
                         }
@@ -222,8 +222,8 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 0
-                                    Text { text: qsTr("Audio normalization"); color: Theme.onSurface; font: Theme.fontBodyMedium }
-                                    Text { text: qsTr("Loudness normalization (I=-16 LUFS)"); color: Theme.onSurfaceVariant; font: Theme.fontBodySmall }
+                                    Text { text: qsTr("Audio normalization"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
+                                    Text { text: qsTr("Loudness normalization (I=-16 LUFS)"); color: Theme.fgSurfaceVariant; font: Theme.fontBodySmall }
                                 }
 
                                 Switch {
@@ -249,11 +249,11 @@ Item {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: qsTr("Crossfade"); color: Theme.onSurface; font: Theme.fontBodyMedium }
+                            Text { text: qsTr("Crossfade"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: qsTr("%n s", "", Math.round(settingsPage.crossfadeValue))
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontMono
                             }
                         }
@@ -271,11 +271,11 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.topMargin: Theme.space2
-                            Text { text: qsTr("Playback speed"); color: Theme.onSurface; font: Theme.fontBodyMedium }
+                            Text { text: qsTr("Playback speed"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: settingsPage.speedValue.toFixed(2) + "x"
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontMono
                             }
                         }
@@ -294,7 +294,7 @@ Item {
                         Text {
                             Layout.topMargin: Theme.space2
                             text: qsTr("Sleep timer")
-                            color: Theme.onSurface
+                            color: Theme.fgSurface
                             font: Theme.fontBodyMedium
                         }
                         RowLayout {
@@ -322,7 +322,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: qsTr("Start a sleep timer from the Now Playing page.")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodySmall
                             wrapMode: Text.Wrap
                         }
@@ -354,7 +354,7 @@ Item {
                                 Icon {
                                     name: settingsPage.authenticated ? "check" : "warning"
                                     size: 16
-                                    color: settingsPage.authenticated ? Theme.success : Theme.onSurfaceVariant
+                                    color: settingsPage.authenticated ? Theme.success : Theme.fgSurfaceVariant
                                 }
 
                                 ColumnLayout {
@@ -362,14 +362,14 @@ Item {
                                     spacing: 0
                                     Text {
                                         text: settingsPage.authenticated ? qsTr("Signed in to YouTube Music") : qsTr("Not signed in")
-                                        color: Theme.onSurface
+                                        color: Theme.fgSurface
                                         font: Theme.fontTitleMedium
                                     }
                                     Text {
                                         text: settingsPage.authenticated
                                             ? qsTr("Library, recommendations, and history are available")
                                             : qsTr("Sign in for your library and personalized home feed")
-                                        color: Theme.onSurfaceVariant
+                                        color: Theme.fgSurfaceVariant
                                         font: Theme.fontBodySmall
                                     }
                                 }
@@ -395,7 +395,7 @@ Item {
                             Text {
                                 Layout.fillWidth: true
                                 text: qsTr("Prefer browser cookies instead? Export them with a browser extension, then import the file.")
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontBodySmall
                                 wrapMode: Text.Wrap
                             }
@@ -423,12 +423,12 @@ Item {
                                     spacing: 0
                                     Text {
                                         text: qsTr("Report plays to YouTube Music")
-                                        color: Theme.onSurface
+                                        color: Theme.fgSurface
                                         font: Theme.fontTitleMedium
                                     }
                                     Text {
                                         text: qsTr("Include SonicTune plays in your YTM Recap and listening history")
-                                        color: Theme.onSurfaceVariant
+                                        color: Theme.fgSurfaceVariant
                                         font: Theme.fontBodySmall
                                     }
                                 }
@@ -483,12 +483,12 @@ Item {
                                         spacing: 0
                                         Text {
                                             text: perfRow.modelData.label
-                                            color: Theme.onSurface
+                                            color: Theme.fgSurface
                                             font: Theme.fontBodyMedium
                                         }
                                         Text {
                                             text: perfRow.modelData.desc
-                                            color: Theme.onSurfaceVariant
+                                            color: Theme.fgSurfaceVariant
                                             font: Theme.fontBodySmall
                                         }
                                     }
@@ -519,11 +519,11 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.topMargin: Theme.space2
-                            Text { text: qsTr("Image source size"); color: Theme.onSurface; font: Theme.fontBodyMedium }
+                            Text { text: qsTr("Image source size"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: String(Theme.imageSourceSize)
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontMono
                             }
                         }
@@ -539,11 +539,11 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.topMargin: Theme.space2
-                            Text { text: qsTr("List cache buffer"); color: Theme.onSurface; font: Theme.fontBodyMedium }
+                            Text { text: qsTr("List cache buffer"); color: Theme.fgSurface; font: Theme.fontBodyMedium }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: String(Theme.listCacheBuffer)
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontMono
                             }
                         }
@@ -583,10 +583,10 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 0
-                                    Text { text: qsTr("Downloaded audio cache"); color: Theme.onSurface; font: Theme.fontTitleMedium }
+                                    Text { text: qsTr("Downloaded audio cache"); color: Theme.fgSurface; font: Theme.fontTitleMedium }
                                     Text {
                                         text: settingsPage.formatBytes(settingsPage.audioCacheBytes)
-                                        color: Theme.onSurfaceVariant
+                                        color: Theme.fgSurfaceVariant
                                         font: Theme.fontBodySmall
                                     }
                                 }
@@ -602,14 +602,14 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: qsTr("SonicTune — a native YouTube Music client for Linux, built with PySide6 and mpv.")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodySmall
                             wrapMode: Text.Wrap
                         }
                         Text {
                             Layout.fillWidth: true
                             text: qsTr("Version %1").arg(typeof AppVersion !== "undefined" ? AppVersion : "0.1.0")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodySmall
                         }
                     }

@@ -24,7 +24,7 @@ async def test_extract_palette_from_image(create_test_image):
 
     # Check that we got a valid palette object
     assert hasattr(palette, 'primary')
-    assert hasattr(palette, 'on_primary')
+    assert hasattr(palette, 'fg_primary')
     assert palette.primary.startswith('#')
 
 

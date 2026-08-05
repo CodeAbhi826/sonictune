@@ -25,7 +25,7 @@ QtObject {
 
     function popToRoot() {
         if (stackView) {
-            stackView.pop(null, StackView.Immediate)
+            stackView.pop(null, stackView.Immediate)
         }
     }
 }

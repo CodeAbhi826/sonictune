@@ -80,12 +80,12 @@ Item {
                 spacing: 2
                 Text {
                     text: homePage.greeting
-                    color: Theme.onSurface
+                    color: Theme.fgSurface
                     font: Theme.fontHeadlineMedium
                 }
                 Text {
                     text: qsTr("Welcome back to SonicTune")
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodyMedium
                 }
             }
@@ -124,7 +124,7 @@ Item {
                         id: moodLabel
                         anchors.centerIn: parent
                         text: moodChip.modelData.label
-                        color: moodChip.active ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                        color: moodChip.active ? Theme.fgPrimaryContainer : Theme.fgSurfaceVariant
                         font: Theme.fontLabelLarge
                     }
 
@@ -167,7 +167,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: sectionDelegate.modelData.title || ""
-                            color: Theme.onSurface
+                            color: Theme.fgSurface
                             font: Theme.fontTitleLarge
                             elide: Text.ElideRight
                             visible: text.length > 0
@@ -228,13 +228,13 @@ Item {
         spacing: Theme.space4
         width: 320
 
-        Icon { Layout.alignment: Qt.AlignHCenter; name: "music_off"; size: 32; color: Theme.onSurfaceVariant }
+        Icon { Layout.alignment: Qt.AlignHCenter; name: "music_off"; size: 32; color: Theme.fgSurfaceVariant }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: homePage.loadError
                 ? qsTr("Couldn't load your home feed")
                 : qsTr("Your home feed is empty")
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontTitleMedium
             horizontalAlignment: Text.AlignHCenter
         }
@@ -244,7 +244,7 @@ Item {
             text: homePage.loadError
                 ? qsTr("Try again, or head to Search.")
                 : qsTr("Sign in from Settings for personalized recommendations, or head to Search.")
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodySmall
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap

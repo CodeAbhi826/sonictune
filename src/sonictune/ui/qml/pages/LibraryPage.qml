@@ -65,7 +65,7 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            Text { text: qsTr("Library"); color: Theme.onSurface; font: Theme.fontHeadlineMedium }
+            Text { text: qsTr("Library"); color: Theme.fgSurface; font: Theme.fontHeadlineMedium }
             Item { Layout.fillWidth: true }
             STButton {
                 text: qsTr("Sync")
@@ -137,17 +137,17 @@ TrackList {
                         spacing: Theme.space3
                         visible: libraryPage.albums.length === 0
 
-                        Icon { Layout.alignment: Qt.AlignHCenter; name: "album"; size: 32; color: Theme.onSurfaceVariant }
+                        Icon { Layout.alignment: Qt.AlignHCenter; name: "album"; size: 32; color: Theme.fgSurfaceVariant }
                         Text {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr("No albums saved yet")
-                            color: Theme.onSurface
+                            color: Theme.fgSurface
                             font: Theme.fontTitleMedium
                         }
                         Text {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr("Albums you save will show up here.")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodySmall
                         }
                     }
@@ -193,17 +193,17 @@ TrackList {
                         spacing: Theme.space3
                         visible: libraryPage.playlists.length === 0
 
-                        Icon { Layout.alignment: Qt.AlignHCenter; name: "queue"; size: 32; color: Theme.onSurfaceVariant }
+                        Icon { Layout.alignment: Qt.AlignHCenter; name: "queue"; size: 32; color: Theme.fgSurfaceVariant }
                         Text {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr("No playlists saved yet")
-                            color: Theme.onSurface
+                            color: Theme.fgSurface
                             font: Theme.fontTitleMedium
                         }
                         Text {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr("Playlists you save will show up here.")
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontBodySmall
                         }
                     }
@@ -217,18 +217,18 @@ TrackList {
                     spacing: Theme.space3
                     width: 360
 
-                    Icon { Layout.alignment: Qt.AlignHCenter; name: "download"; size: 32; color: Theme.onSurfaceVariant }
+                    Icon { Layout.alignment: Qt.AlignHCenter; name: "download"; size: 32; color: Theme.fgSurfaceVariant }
                     Text {
                         Layout.alignment: Qt.AlignHCenter
                         text: qsTr("Local files coming soon")
-                        color: Theme.onSurface
+                        color: Theme.fgSurface
                         font: Theme.fontTitleMedium
                     }
                     Text {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
                         text: qsTr("Soon you'll be able to browse music stored on this device. For now, search the catalog to play anything.")
-                        color: Theme.onSurfaceVariant
+                        color: Theme.fgSurfaceVariant
                         font: Theme.fontBodySmall
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.Wrap
@@ -244,18 +244,18 @@ TrackList {
         spacing: Theme.space4
         width: 320
 
-        Icon { Layout.alignment: Qt.AlignHCenter; name: "library"; size: 32; color: Theme.onSurfaceVariant }
+        Icon { Layout.alignment: Qt.AlignHCenter; name: "library"; size: 32; color: Theme.fgSurfaceVariant }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: qsTr("Sign in to see your library")
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontTitleMedium
         }
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             text: qsTr("Your saved songs, albums, and playlists show up here once you're signed in to YouTube Music.")
-            color: Theme.onSurfaceVariant
+            color: Theme.fgSurfaceVariant
             font: Theme.fontBodySmall
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap

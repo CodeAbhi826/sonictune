@@ -86,7 +86,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: overlay.message
-            color: Theme.onSurface
+            color: Theme.fgSurface
             font: Theme.fontBodyLarge
         }
     }

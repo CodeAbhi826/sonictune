@@ -55,7 +55,7 @@ Drawer {
 
             Text {
                 text: qsTr("Queue")
-                color: Theme.onSurface
+                color: Theme.fgSurface
                 font: Theme.fontTitleLarge
             }
 
@@ -63,7 +63,7 @@ Drawer {
 
             Text {
                 text: qsTr("%n track(s)", "", (queueDrawer.queue.tracks || []).length)
-                color: Theme.onSurfaceVariant
+                color: Theme.fgSurfaceVariant
                 font: Theme.fontBodySmall
             }
 
@@ -117,7 +117,7 @@ Drawer {
                         Text {
                             Layout.preferredWidth: 24
                             text: queueRow.isCurrent ? "" : (queueRow.index + 1)
-                            color: Theme.onSurfaceVariant
+                            color: Theme.fgSurfaceVariant
                             font: Theme.fontMono
                             horizontalAlignment: Text.AlignRight
                         }
@@ -137,7 +137,7 @@ Drawer {
                             Text {
                                 Layout.fillWidth: true
                                 text: queueRow.modelData.title || ""
-                                color: queueRow.isCurrent ? Theme.onPrimaryContainer : Theme.onSurface
+                                color: queueRow.isCurrent ? Theme.fgPrimaryContainer : Theme.fgSurface
                                 font: Theme.fontBodyMedium
                                 elide: Text.ElideRight
                             }
@@ -145,7 +145,7 @@ Drawer {
                             Text {
                                 Layout.fillWidth: true
                                 text: queueRow.modelData.artist || ""
-                                color: Theme.onSurfaceVariant
+                                color: Theme.fgSurfaceVariant
                                 font: Theme.fontBodySmall
                                 elide: Text.ElideRight
                             }
@@ -178,13 +178,13 @@ Drawer {
                     Layout.alignment: Qt.AlignHCenter
                     name: "queue_music"
                     size: 26
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                 }
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
                     text: qsTr("Queue is empty")
-                    color: Theme.onSurfaceVariant
+                    color: Theme.fgSurfaceVariant
                     font: Theme.fontBodyMedium
                 }
             }

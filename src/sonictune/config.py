@@ -81,6 +81,27 @@ class UIConfig:
     volume_step: int = 5
     remember_page: bool = True
     report_history: bool = True  # Report plays to YouTube Music history/Recap
+    dynamic_theme_enabled: bool = False  # Material You palette extraction
+
+
+@dataclass
+class LastFmConfig:
+    """Last.fm scrobbling settings."""
+
+    enabled: bool = False
+    api_key: str = ""
+    api_secret: str = ""
+    session_key: str = ""
+
+
+@dataclass
+class SponsorBlockConfig:
+    """SponsorBlock skip settings."""
+
+    enabled: bool = False
+    categories: list[str] = field(
+        default_factory=lambda: ["sponsor", "intro", "outro", "selfpromo", "music_offtopic"]
+    )
 
 
 @dataclass
@@ -184,6 +205,8 @@ class DaemonConfig:
     discord: DiscordConfig = field(default_factory=DiscordConfig)
     mpris: MprisConfig = field(default_factory=MprisConfig)
     shortcuts: ShortcutsConfig = field(default_factory=ShortcutsConfig)
+    lastfm: LastFmConfig = field(default_factory=LastFmConfig)
+    sponsorblock: SponsorBlockConfig = field(default_factory=SponsorBlockConfig)
 
     # Paths
     config_dir: Path = DEFAULT_CONFIG_DIR
@@ -243,11 +266,23 @@ class DaemonConfig:
             "toggle_mini_player": self.shortcuts.toggle_mini_player,
             "focus_search": self.shortcuts.focus_search,
         }
+        lastfm = {
+            "enabled": self.lastfm.enabled,
+            "api_key": self.lastfm.api_key,
+            "api_secret": self.lastfm.api_secret,
+            "session_key": self.lastfm.session_key,
+        }
+        sponsorblock = {
+            "enabled": self.sponsorblock.enabled,
+            "categories": self.sponsorblock.categories,
+        }
         text = (
             "# SonicTune configuration (auto-saved).\n\n"
             + _section("audio", audio)
             + _section("ui", ui)
             + _section("shortcuts", shortcuts)
+            + _section("lastfm", lastfm)
+            + _section("sponsorblock", sponsorblock)
         )
         path.write_text(text)
 
@@ -290,6 +325,7 @@ accent_color = "#D0BCFF"      # Material 3 primary
 volume_step = 5
 remember_page = true
 report_history = true         # Report plays to YouTube Music history/Recap
+dynamic_theme_enabled = false # Extract Material You palette from album art
 
 [shortcuts]
 play_pause = "Space"
@@ -310,6 +346,16 @@ show_in_status = true
 [mpris]
 enabled = true
 instance_name = "sonictune"
+
+[lastfm]
+enabled = false
+api_key = ""
+api_secret = ""
+session_key = ""
+
+[sponsorblock]
+enabled = false
+categories = ["sponsor", "intro", "outro", "selfpromo", "music_offtopic"]
 
 # [general]
 # log_level = "INFO"
@@ -376,6 +422,16 @@ def load_config(explicit_path: Path | str | None = None) -> DaemonConfig:
             if hasattr(config.shortcuts, k):
                 setattr(config.shortcuts, k, v)
 
+    if "lastfm" in data:
+        for k, v in data["lastfm"].items():
+            if hasattr(config.lastfm, k):
+                setattr(config.lastfm, k, v)
+
+    if "sponsorblock" in data:
+        for k, v in data["sponsorblock"].items():
+            if hasattr(config.sponsorblock, k):
+                setattr(config.sponsorblock, k, v)
+
     if "daemon" in data:
         daemon = data["daemon"]
         if "log_level" in daemon:
@@ -400,8 +456,10 @@ __all__ = [
     "CacheConfig",
     "DaemonConfig",
     "DiscordConfig",
+    "LastFmConfig",
     "MprisConfig",
     "ShortcutsConfig",
+    "SponsorBlockConfig",
     "UIConfig",
     "load_config",
     "resolve_high_quality",

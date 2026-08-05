@@ -414,8 +414,8 @@ The v2 code used `--no-mpris` flag to work around player-freezing-on-position bu
    - `Properties.Get(Identity)` returns `"SonicTune"`
    - `Properties.Get(PlaybackStatus)` returns successfully
 
-**File:** `src/sonictune/daemon/mpris/server.py` (full rewrite), `tests/test_e2e.py` (new MPRIS E2E tests)
-**Status:** Fixed (verified — 27/27 E2E tests pass, MPRIS Player interface now visible to busctl/gdbus)
+**File:** `src/sonictune/daemon/mpris/server.py` (full rewrite), `tests/test_app.py` (direct MPRIS proxy tests)
+**Status:** Fixed (verified — MPRIS Player interface now visible to busctl/gdbus)
 
 ---
 
@@ -658,11 +658,11 @@ Added `# noqa: F821,UP037,F722` (dbus-next requires quoted annotations; keeps ru
 | `pyproject.toml` | Changed GitHub URL from yourusername to CodeAbhi826 |
 | `src/sonictune/daemon/lyrics/lrclib.py` | Changed GitHub URL in User-Agent header |
 | `src/sonictune/ui/qml/pages/SettingsPage.qml` | Changed GitHub URL in about link |
-| `tests/test_e2e.py` | New E2E test suite (22 tests) — daemon D-Bus interface verification |
+| `tests/test_app.py` | New DaemonProxy test suite — signals, slots, player events, transport, library, stats, end-of-track auto-advance |
 | `scripts/run-daemon.sh` | Fixed: Bug 22 Part A — added `export LC_ALL=C` before Python invocation |
 | `src/sonictune/daemon/player/mpv_player.py` | Fixed: Bug 22 Part B — added `locale.setlocale(LC_ALL, "C")` before `mpv.MPV()` |
 | `src/sonictune/daemon/sonictuned.py` | Fixed: Bug 22 Part C — changed `LC_NUMERIC` to `LC_ALL` in module-level setlocale |
-| `tests/test_e2e.py` | Fixed: 22/22 E2E tests passing — fixed fixture, method names, argument passing |
+| `tests/test_app.py` | Fixed: DaemonProxy suite passing — fixed fixture, method names, argument passing |
 
 ## Unfixed Bugs (Blocking E2E)
 
