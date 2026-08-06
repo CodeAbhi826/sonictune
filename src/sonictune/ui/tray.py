@@ -4,7 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import structlog
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 log = structlog.get_logger()
@@ -17,7 +18,16 @@ def _tray_icon() -> QIcon:
         return icon
     icon_path = Path(__file__).resolve().parents[2] / "data" / "org.sonicTune.svg"
     if icon_path.exists():
-        return QIcon(str(icon_path))
+        try:
+            renderer = QSvgRenderer(str(icon_path))
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(0)
+            painter = QPainter(pixmap)
+            renderer.render(painter)
+            painter.end()
+            return QIcon(pixmap)
+        except Exception:
+            return QIcon(str(icon_path))
     return QIcon()
 
 

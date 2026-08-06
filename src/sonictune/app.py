@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING, Any
 import qasync
 import structlog
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPixmap, QPainter
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtWidgets import QApplication
@@ -92,7 +93,19 @@ class SonicTuneApp:
         self.app = QApplication(sys.argv[:1])
         # Set window icon from SVG file in data directory
         icon_path = Path(__file__).resolve().parents[2] / "data" / "org.sonicTune.svg"
-        self.app.setWindowIcon(QIcon(str(icon_path)))
+        if icon_path.exists():
+            try:
+                renderer = QSvgRenderer(str(icon_path))
+                pixmap = QPixmap(64, 64)
+                pixmap.fill(0)
+                painter = QPainter(pixmap)
+                renderer.render(painter)
+                painter.end()
+                self.app.setWindowIcon(QIcon(pixmap))
+            except Exception:
+                self.app.setWindowIcon(QIcon(str(icon_path)))
+        else:
+            log.warning("app.icon_not_found", path=str(icon_path))
         self.app.setApplicationName("SonicTune")
         self.app.setApplicationDisplayName("SonicTune")
         self.app.setApplicationVersion(__version__)

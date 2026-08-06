@@ -106,7 +106,13 @@ class ArtCache:
         try:
             import httpx as _httpx
 
-            with _httpx.Client(timeout=10.0, follow_redirects=True) as http:
+            with _httpx.Client(
+                timeout=10.0,
+                follow_redirects=True,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) SonicTune/0.1",
+                },
+            ) as http:
                 resp = http.get(url)
                 resp.raise_for_status()
                 raw = resp.content
