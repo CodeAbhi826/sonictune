@@ -276,7 +276,10 @@ Item {
                                 title: albumItem.modelData.title || ""
                                 subtitle: albumItem.modelData.artist || albumItem.modelData.author || ""
                                 thumbnailUrl: albumItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(albumItem.modelData.title || "", "songs", 20)
+                                onClicked: Router.pushPage("AlbumDetailPage.qml", {
+                                    albumId: albumItem.modelData.browse_id || "",
+                                    albumTitle: albumItem.modelData.title || ""
+                                })
                             }
                         }
                     }
@@ -298,7 +301,10 @@ Item {
                                 required property var modelData
                                 name: artistItem.modelData.name || artistItem.modelData.title || ""
                                 thumbnailUrl: artistItem.modelData.thumbnail_url || ""
-                                onClicked: Daemon.search(artistItem.modelData.name || artistItem.modelData.title || "", "songs", 20)
+                                onClicked: Router.pushPage("ArtistDetailPage.qml", {
+                                    artistId: artistItem.modelData.browse_id || "",
+                                    artistName: artistItem.modelData.name || artistItem.modelData.title || ""
+                                })
                             }
                         }
                     }

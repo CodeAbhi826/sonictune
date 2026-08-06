@@ -10,7 +10,7 @@ import "../theme"
 
 Rectangle {
     id: navRail
-    color: Theme.surface
+    color: Qt.rgba(Theme.surface.r, Theme.surface.g, Theme.surface.b, 0.96)
 
     implicitWidth: 88
 

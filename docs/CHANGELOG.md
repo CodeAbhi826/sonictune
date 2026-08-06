@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] — 2026-08-06 (Part 2: reference-project alignment)
+
+### Added
+- **Now Playing tabs** (Player | Lyrics | Queue): fullscreen view restructured with a `TabBar` + `StackLayout`; new Queue tab shows the live queue with remove/refresh (`Daemon.getQueue()`/`removeFromQueue`); lyrics moved into its own tab. `queueTracks()` helper moved to the root scope so queue-tab bindings resolve at load.
+- **Album & Artist detail pages**: `AlbumDetailPage.qml`/`ArtistDetailPage.qml` (mirror `PlaylistDetailPage`) fetch via new `DaemonProxy.getAlbumDetail(browseId)`/`getArtistDetail(channelId)` slots + `albumDetailReceived`/`albumDetailError`/`artistDetailReceived`/`artistDetailError` signals; album/artist cards on Home/Search/Library now navigate via `Router.pushPage`.
+- **Home pull-to-refresh**: sections scroll area converted to a `Flickable`; pulling past the threshold reloads the feed (`Daemon.getHome()`).
+- **Settings sub-pages**: `SettingsPage` is now a hub; new `SettingsAppearancePage`, `SettingsPlayerPage`, `SettingsContentPage`, `SettingsIntegrationsPage`, `SettingsBackupPage`, `SettingsAboutPage` replace the single long accordion.
+- **Stats visualizations**: "Last 30 days" bar chart + "Hourly listening" heat strip on `StatsPage` from existing `last_30_days_json`/`listening_by_hour_json`.
+- **Liquid-glass accent**: subtle transparency on `PlayerBar` (with top highlight) and `NavRail`; `chevronLeft` used for back buttons (replaces undefined `arrow_back` glyph).
+
+### Verified
+- `QQmlComponent` compile: all new/changed QML pages + `main.qml` READY; `pyside6-qmllint` exit 0 on all changed pages; `ruff check` clean; `pytest tests/` → **216 passed, 4 skipped** (visual baseline passes standalone).
+
+---
+
 ## [Unreleased] — 2026-08-05 (Part 1: boot blockers)
 
 ### Added

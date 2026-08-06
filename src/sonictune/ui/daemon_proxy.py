@@ -79,6 +79,10 @@ class DaemonProxy(QObject):
     libraryPlaylistsError = Signal(str)
     playlistTracksReceived = Signal(str, list)
     playlistTracksError = Signal(str, str)
+    albumDetailReceived = Signal(dict)
+    albumDetailError = Signal(str)
+    artistDetailReceived = Signal(dict)
+    artistDetailError = Signal(str)
     startOAuthError = Signal(str)
     pollOAuthError = Signal(str)
     statsError = Signal(str)
@@ -596,6 +600,47 @@ class DaemonProxy(QObject):
                 )
             except Exception as e:
                 self.playlistTracksError.emit(playlist_id, str(e))
+        asyncio.create_task(_do())
+
+    @Slot(str)
+    def getAlbumDetail(self, browse_id: str) -> None:
+        async def _do():
+            try:
+                album = await self._library.get_album(browse_id)
+                self.albumDetailReceived.emit({
+                    "browse_id": album.browse_id,
+                    "title": album.title,
+                    "artist": album.artist,
+                    "artist_id": album.artist_id,
+                    "year": str(album.year),
+                    "thumbnail_url": album.thumbnail_url,
+                    "track_count": str(len(album.tracks)),
+                    "tracks": [self._track_to_dict(t) for t in album.tracks],
+                })
+            except Exception as e:
+                self.albumDetailError.emit(str(e))
+        asyncio.create_task(_do())
+
+    @Slot(str)
+    def getArtistDetail(self, channel_id: str) -> None:
+        async def _do():
+            try:
+                artist = await self._library.get_artist(channel_id)
+                tracks = [
+                    self._track_to_dict(Track.from_ytmusic(t))
+                    for t in (artist.get("songs", {}).get("tracks", []) or [])
+                ]
+                self.artistDetailReceived.emit({
+                    "channel_id": channel_id,
+                    "name": artist.get("name", ""),
+                    "description": artist.get("description", ""),
+                    "subscriber_count": artist.get("subscribers", ""),
+                    "thumbnail_url": artist.get("thumbnails", [{}])[-1].get("url", "")
+                    if artist.get("thumbnails") else "",
+                    "tracks": tracks,
+                })
+            except Exception as e:
+                self.artistDetailError.emit(str(e))
         asyncio.create_task(_do())
 
     def _album_to_dict(self, a: Any) -> dict[str, Any]:

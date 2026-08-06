@@ -204,6 +204,97 @@ Item {
                 }
             }
 
+            // --- Listening trend (last 30 days) -------------------------------
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space6
+                Layout.rightMargin: Theme.space6
+                spacing: Theme.space3
+
+                Text { text: qsTr("Last 30 days"); color: Theme.fgSurface; font: Theme.fontTitleLarge }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 120
+                    spacing: Theme.space1
+
+                    Repeater {
+                        model: statsPage.last30
+
+                        delegate: ColumnLayout {
+                            id: dayCol
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            spacing: 2
+
+                            readonly property real share: {
+                                var max = statsPage.maxDailyMs()
+                                return max > 0 ? (Number(dayCol.modelData.listen_ms || 0) / max) : 0
+                            }
+
+                            Item { Layout.fillWidth: true; Layout.fillHeight: true }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Math.max(2, 96 * dayCol.share)
+                                radius: Theme.radiusXs
+                                color: Theme.primary
+                                opacity: 0.35 + 0.65 * dayCol.share
+                            }
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                visible: dayCol.modelData && dayCol.modelData.date
+                                text: String(dayCol.modelData.date).slice(5) // MM-DD
+                                color: Theme.fgSurfaceVariant
+                                font: Theme.fontLabelSmall
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Hourly listening fingerprint -----------------------------------
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space6
+                Layout.rightMargin: Theme.space6
+                spacing: Theme.space3
+
+                Text { text: qsTr("Hourly listening"); color: Theme.fgSurface; font: Theme.fontTitleLarge }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 64
+                    spacing: Theme.space1
+
+                    Repeater {
+                        model: 24
+
+                        delegate: Rectangle {
+                            required property int index
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: Theme.radiusXs
+
+                            readonly property real share: {
+                                var max = statsPage.maxHourMs()
+                                return max > 0 ? (Number(statsPage.hourly[index] || 0) / max) : 0
+                            }
+
+                            color: Qt.rgba(
+                                Theme.primary.r, Theme.primary.g, Theme.primary.b,
+                                0.15 + 0.85 * Math.max(0, share))
+                        }
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("0h midnight · 6h · 12h noon · 18h · 23h")
+                    color: Theme.fgSurfaceVariant
+                    font: Theme.fontLabelSmall
+                }
+            }
+
             // --- Top tracks + artists -------------------------------------------
             RowLayout {
                 Layout.fillWidth: true
@@ -324,5 +415,23 @@ Item {
     function formatHours(ms) {
         var hrs = ms / 3600000
         return hrs < 10 ? hrs.toFixed(1) : String(Math.round(hrs))
+    }
+
+    function maxDailyMs() {
+        var max = 0
+        for (var i = 0; i < statsPage.last30.length; i++) {
+            var v = Number(statsPage.last30[i].listen_ms || 0)
+            if (v > max) max = v
+        }
+        return max
+    }
+
+    function maxHourMs() {
+        var max = 0
+        for (var i = 0; i < statsPage.hourly.length; i++) {
+            var v = Number(statsPage.hourly[i] || 0)
+            if (v > max) max = v
+        }
+        return max
     }
 }

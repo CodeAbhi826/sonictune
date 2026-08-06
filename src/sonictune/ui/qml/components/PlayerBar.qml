@@ -10,10 +10,19 @@ import "../theme"
 Rectangle {
     id: playerBar
     radius: Theme.radiusLg
-    color: Theme.playerBarBg
+    color: Qt.rgba(Theme.playerBarBg.r, Theme.playerBarBg.g, Theme.playerBarBg.b, 0.88)
     border.width: 1
     border.color: Theme.playerBarBorder
     clip: true
+
+    // Subtle glass highlight along the top edge.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: 1
+        color: Qt.rgba(1, 1, 1, 0.10)
+    }
 
     signal queueRequested()
     signal openNowPlaying()

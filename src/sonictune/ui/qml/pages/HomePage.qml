@@ -6,6 +6,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
 import "../components"
+import "../router"
 
 Item {
     id: homePage
@@ -139,16 +140,47 @@ Item {
         }
 
         // --- Sections of cards --------------------------------------------------
-        ScrollView {
+        Flickable {
+            id: homeScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentWidth: availableWidth
+            contentWidth: width
+            contentHeight: homeSectionsColumn.implicitHeight
             clip: true
             visible: !homePage.loading && !homePage.loadError && homePage.sections.length > 0
 
+            property bool pullReady: homeScroll.contentY <= -Theme.space6 * 8
+
+            onDragEnded: {
+                if (homeScroll.pullReady) homePage.reload()
+            }
+
             ColumnLayout {
-                width: homePage.width - Theme.space6 * 2
+                id: homeSectionsColumn
+                width: homeScroll.width
                 spacing: Theme.space6
+
+                // Pull-to-refresh indicator
+                Item {
+                    id: pullIndicator
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: (homeScroll.contentY < 0 || homePage.loading)
+                        ? Theme.space6 * 4 : 0
+                    Behavior on Layout.preferredHeight {
+                        enabled: !Theme.reducedMotion
+                        NumberAnimation { duration: Theme.durFast }
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: homeScroll.pullReady
+                            ? qsTr("Release to refresh")
+                            : qsTr("Pull to refresh")
+                        color: Theme.fgSurfaceVariant
+                        font: Theme.fontLabelMedium
+                        opacity: 0.7
+                    }
+                }
 
                 Repeater {
                     model: homePage.sections
@@ -199,7 +231,10 @@ Item {
                                             if (itemCard.modelData.video_id) {
                                                 Daemon.playTrack(itemCard.modelData.video_id)
                                             } else if (itemCard.modelData.browse_id) {
-                                                homePage.openSearch(itemCard.modelData.title || itemCard.modelData.subtitle || "")
+                                                Router.pushPage("AlbumDetailPage.qml", {
+                                                    albumId: itemCard.modelData.browse_id,
+                                                    albumTitle: itemCard.modelData.title || ""
+                                                })
                                             }
                                         }
                                     }

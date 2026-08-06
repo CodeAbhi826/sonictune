@@ -17,6 +17,7 @@ Item {
 
     property var status: ({})
     property var currentTrack: ({})
+    property var queue: ({})
     property int positionMs: 0
     property int durationMs: 0
     property bool isPlaying: false
@@ -44,6 +45,11 @@ Item {
     ]
 
     readonly property var speedOptions: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+
+    function queueTracks() {
+        var q = nowPlayingPage.queue
+        return (q && q.tracks) || []
+    }
 
     Connections {
         target: Daemon
@@ -82,6 +88,9 @@ Item {
         function onQueueChanged() {
             Daemon.getStatus()
         }
+        function onQueueReceived(q) {
+            nowPlayingPage.queue = q || {}
+        }
         function onAudioQualityChanged(q) { nowPlayingPage.audioQuality = q }
         function onCurrentAudioItagChanged(itag) { nowPlayingPage.currentItag = itag }
         function onLyricsReceived(lines) {
@@ -95,6 +104,7 @@ Item {
 
     Component.onCompleted: {
         Daemon.getStatus()
+        Daemon.getQueue()
         nowPlayingPage.audioQuality = Daemon.audioQuality()
         nowPlayingPage.currentItag = Daemon.currentAudioItag()
         nowPlayingPage.speedValue = Daemon.speed()
@@ -179,19 +189,53 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            Flickable {
-                id: playerScroll
-                anchors.fill: parent
-                clip: true
-                contentWidth: width
-                contentHeight: playerColumn.implicitHeight + Theme.space8
-                visible: !nowPlayingPage.lyricsVisible
+            // --- Tab bar: Player | Lyrics | Queue --------------------------
+            TabBar {
+                id: npTabs
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                z: 10
 
-                ColumnLayout {
-                    id: playerColumn
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: Math.min(520, parent.width - Theme.space8)
-                    spacing: Theme.space4
+                background: Rectangle { color: "transparent" }
+
+                TabButton {
+                    text: qsTr("Player")
+                    font: Theme.fontLabelLarge
+                    onClicked: npStack.currentIndex = 0
+                }
+                TabButton {
+                    text: qsTr("Lyrics")
+                    font: Theme.fontLabelLarge
+                    onClicked: npStack.currentIndex = 1
+                }
+                TabButton {
+                    text: qsTr("Queue")
+                    font: Theme.fontLabelLarge
+                    onClicked: npStack.currentIndex = 2
+                }
+            }
+
+            StackLayout {
+                id: npStack
+                anchors.top: npTabs.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                currentIndex: 0
+
+                // --- Player tab -------------------------------------------
+                Flickable {
+                    id: playerScroll
+                    clip: true
+                    contentWidth: width
+                    contentHeight: playerColumn.implicitHeight + Theme.space8
+
+                    ColumnLayout {
+                        id: playerColumn
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: Math.min(520, parent.width - Theme.space8)
+                        spacing: Theme.space4
 
                     // Artwork
                     Rectangle {
@@ -341,8 +385,8 @@ Item {
                             icon: "lyrics"
                             diameter: 40
                             iconSize: 18
-                            highlighted: nowPlayingPage.lyricsVisible
-                            onClicked: nowPlayingPage.lyricsVisible = !nowPlayingPage.lyricsVisible
+                            highlighted: npStack.currentIndex === 1
+                            onClicked: npStack.currentIndex = 1
                         }
                     }
 
@@ -360,11 +404,11 @@ Item {
                 }
             }
 
-            // --- Lyrics panel ------------------------------------------------
+            // --- Lyrics tab ------------------------------------------------
             SyncedLyricsView {
-                anchors.fill: parent
-                anchors.margins: Theme.space4
-                visible: nowPlayingPage.lyricsVisible
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: Theme.space4
                 currentTrackTitle: nowPlayingPage.currentTrack.title || ""
                 currentTrackArtist: nowPlayingPage.currentTrack.artist || ""
                 currentTrackAlbum: nowPlayingPage.currentTrack.album || ""
@@ -372,6 +416,153 @@ Item {
                 currentPositionMs: nowPlayingPage.positionMs
                 model: nowPlayingPage.lyricsModel
             }
+
+            // --- Queue tab ---------------------------------------------------
+            Item {
+                id: queueTab
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                property var queue: nowPlayingPage.queue
+                property string currentVideoId: nowPlayingPage.currentTrack.video_id
+                    || nowPlayingPage.currentTrack.videoId || ""
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.space4
+                    spacing: Theme.space3
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: qsTr("%n track(s)", "", (queueTracks().length))
+                            color: Theme.fgSurfaceVariant
+                            font: Theme.fontBodySmall
+                        }
+                        Item { Layout.fillWidth: true }
+                        IconButton {
+                            iconName: "sync"
+                            iconSize: 16
+                            toolTip: qsTr("Refresh")
+                            onClicked: Daemon.getQueue()
+                        }
+                    }
+
+                    ListView {
+                        id: queueList
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: Theme.space1
+                        boundsBehavior: Flickable.StopAtBounds
+                        cacheBuffer: Theme.listCacheBuffer
+
+                        model: queueTracks()
+
+                        delegate: Item {
+                            id: queueRow
+                            required property var modelData
+                            required property int index
+
+                            width: queueList.width
+                            height: 56
+
+                            readonly property bool isCurrent:
+                                (modelData.video_id || modelData.videoId || "") === queueTab.currentVideoId
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: Theme.radiusSm
+                                color: queueRow.isCurrent
+                                    ? Theme.primaryContainer
+                                    : (rowMa.containsMouse ? Theme.surfaceContainerHigh : "transparent")
+                                Behavior on color {
+                                    enabled: !Theme.reducedMotion
+                                    ColorAnimation { duration: Theme.durFast }
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: Theme.space3
+                                    anchors.rightMargin: Theme.space2
+                                    spacing: Theme.space3
+
+                                    Text {
+                                        Layout.preferredWidth: 24
+                                        text: queueRow.isCurrent ? "" : (queueRow.index + 1)
+                                        color: Theme.fgSurfaceVariant
+                                        font: Theme.fontMono
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+
+                                    Icon {
+                                        visible: queueRow.isCurrent
+                                        Layout.preferredWidth: 24
+                                        name: "note"
+                                        size: 13
+                                        color: Theme.primary
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 0
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: modelData.title || ""
+                                            color: queueRow.isCurrent ? Theme.fgPrimaryContainer : Theme.fgSurface
+                                            font: Theme.fontBodyMedium
+                                            elide: Text.ElideRight
+                                        }
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: modelData.artist || ""
+                                            color: Theme.fgSurfaceVariant
+                                            font: Theme.fontBodySmall
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+
+                                    IconButton {
+                                        iconName: "close"
+                                        iconSize: 14
+                                        toolTip: qsTr("Remove from queue")
+                                        visible: rowMa.containsMouse || queueRow.isCurrent
+                                        onClicked: Daemon.removeFromQueue(queueRow.index)
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: rowMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            visible: queueList.count === 0
+                            spacing: Theme.space2
+                            Icon {
+                                Layout.alignment: Qt.AlignHCenter
+                                name: "queue_music"
+                                size: 26
+                                color: Theme.fgSurfaceVariant
+                            }
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: qsTr("Queue is empty")
+                                color: Theme.fgSurfaceVariant
+                                font: Theme.fontBodyMedium
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         }
     }
 

@@ -125,7 +125,10 @@ TrackList {
                                 subtitle: albumItem.modelData.artist || ""
                                 thumbnailUrl: albumItem.modelData.thumbnail_url || ""
                                 browseId: albumItem.modelData.browse_id || ""
-                                onClicked: Daemon.search(albumItem.modelData.title || "", "songs", 20)
+                                onClicked: Router.pushPage("AlbumDetailPage.qml", {
+                                    albumId: albumItem.modelData.browse_id || "",
+                                    albumTitle: albumItem.modelData.title || ""
+                                })
                             }
                         }
                     }
