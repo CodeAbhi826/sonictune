@@ -117,7 +117,7 @@ Page {
         // Tracks tab
         TrackList {
             id: tracksList
-            model: localLibraryPage.localTracksModel
+                tracks: localLibraryPage.localTracksModel
             currentTrackId: ""  // Will be set by Daemon when playing
             onPlayLocalTrack: localLibraryPage.handlePlayLocalTrack(trackId)
             onAddLocalTrackToQueue: localLibraryPage.handleAddLocalTrackToQueue(trackId)
@@ -194,11 +194,11 @@ Page {
                 }
             }
 
-            Button {
-                text: qsTr("Cancel")
-                variant: "tonal"
-                onClicked: localLibraryPage.isScanning = false
-            }
+STButton {
+    text: qsTr("Cancel")
+    variant: "tonal"
+    onClicked: localLibraryPage.isScanning = false
+}
         }
     }
 
@@ -231,7 +231,7 @@ Page {
                 Layout.fillWidth: true
                 spacing: Theme.space4
 
-                Button {
+               STButton {
                     text: qsTr("Browse…")
                     variant: "outlined"
                     onClicked: fileDialog.open()
@@ -239,7 +239,7 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+               STButton {
                     text: qsTr("Scan")
                     variant: "filled"
                     onClicked: scanDialog.accept()
@@ -296,7 +296,7 @@ Page {
                 width: 300
             }
 
-            Button {
+           STButton {
                 text: qsTr("Scan Music Folder")
                 variant: "filled"
                 onClicked: scanDialog.open()
