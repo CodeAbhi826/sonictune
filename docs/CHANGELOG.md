@@ -9,6 +9,7 @@
 - **Card hover z-order flicker** (Bug 6): removed the `z: ma.containsMouse ? 10 : 1` re-sort on hover from all three cards (scale animation remains).
 - **Render-thread block on thumbnail fetch** (Bug 4): `ArtImageProvider.requestImage` no longer performs synchronous HTTP fetches. Pixmap cache and disk cache return instantly; uncached URLs return an empty `QImage` immediately and a background thread downloads the art (with in-flight dedup) so the next request hits disk.
 - **Jerky scrolling in lists** (Bug 5): removed the manual `WheelHandler` in `TrackList` that fought with ListView's native wheel handling.
+- **"variant" property compile failure** (Bug 7): `LocalLibraryPage.qml` used plain QtQuick.Controls `Button` for the "Browse…" / "Scan" / "Scan Music Folder" actions; plain `Button` does not support `variant` (Material 3 only). All three instances changed to `STButton`.
 
 ### Verified
 - `QQmlComponent` compile READY + `pyside6-qmllint` exit 0 on all six touched QML files; `ruff check` clean on `imageprovider.py`; `pytest tests/` → **216 passed, 4 skipped** (visual baseline passes standalone); `main.qml` boots to `MAIN_QML_OK`.
