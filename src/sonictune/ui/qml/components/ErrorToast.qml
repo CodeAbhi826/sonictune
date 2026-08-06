@@ -7,6 +7,10 @@ import "../theme"
 Item {
     id: toast
     anchors.fill: parent
+    // Never intercept mouse events while the toast is hidden — the full-size
+    // root Item (and its DragHandler) would otherwise block clicks everywhere.
+    enabled: bar.opacity > 0
+    visible: bar.opacity > 0
 
     property string message: ""
     property int durationMs: 3500

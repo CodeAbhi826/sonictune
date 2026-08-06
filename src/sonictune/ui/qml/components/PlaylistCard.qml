@@ -1,9 +1,8 @@
 // components/PlaylistCard.qml — square card for playlists.
-// VISUAL-FIX: DropShadow on art, z-index on hover, image fade-in.
+// VISUAL-FIX: tonal border highlight on hover (no GPU DropShadow).
 
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import theme 1.0
 
 Rectangle {
@@ -21,7 +20,7 @@ Rectangle {
     height: 224
     color: "transparent"
 
-    z: ma.containsMouse ? 10 : 1
+    z: 1
 
     scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
     Behavior on scale {
@@ -38,15 +37,6 @@ Rectangle {
             Layout.preferredHeight: 168
             radius: Theme.radiusLg
             color: Theme.surfaceContainer
-
-            layer.enabled: true
-            layer.effect: DropShadow {
-                horizontalOffset: 0
-                verticalOffset: ma.containsMouse ? 4 : 2
-                radius: ma.containsMouse ? 12 : 6
-                samples: 16
-                color: Theme.shadowColor
-            }
 
             Image {
                 anchors.fill: parent

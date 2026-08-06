@@ -1,9 +1,8 @@
 // components/ArtistCard.qml — circular avatar + artist name card.
-// VISUAL-FIX: DropShadow on avatar, z-index on hover, image fade-in.
+// VISUAL-FIX: tonal border highlight on hover (no GPU DropShadow).
 
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import theme 1.0
 
 Rectangle {
@@ -19,7 +18,7 @@ Rectangle {
     height: 196
     color: "transparent"
 
-    z: ma.containsMouse ? 10 : 1
+    z: 1
 
     scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
     Behavior on scale {
@@ -37,15 +36,6 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             radius: width / 2
             color: Theme.surfaceContainer
-
-            layer.enabled: true
-            layer.effect: DropShadow {
-                horizontalOffset: 0
-                verticalOffset: ma.containsMouse ? 4 : 2
-                radius: ma.containsMouse ? 12 : 6
-                samples: 16
-                color: Theme.shadowColor
-            }
 
             Image {
                 anchors.fill: parent

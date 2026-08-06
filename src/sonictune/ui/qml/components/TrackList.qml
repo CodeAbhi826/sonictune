@@ -47,14 +47,6 @@ ListView {
     boundsBehavior: Flickable.StopAtBounds
     cacheBuffer: 1200
 
-    WheelHandler {
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-        onWheel: (event) => {
-            list.flick(0, event.angleDelta.y * 4)
-            event.accepted = true
-        }
-    }
-
     delegate: Rectangle {
             id: row
             required property var modelData

@@ -1,6 +1,7 @@
 """QQuickImageProvider for album art — direct ArtCache access."""
 from __future__ import annotations
 
+import threading
 import urllib.parse
 from pathlib import Path
 
@@ -14,7 +15,12 @@ log = structlog.get_logger()
 
 
 class ArtImageProvider(QQuickImageProvider):
-    """Provides album art to QML via `image://art/<url>`."""
+    """Provides album art to QML via `image://art/<url>`.
+
+    ``requestImage`` must never block the render thread on a network fetch:
+    disk-cached art returns instantly, uncached URLs return an empty image
+    and are downloaded in a background thread so the next request hits disk.
+    """
 
     def __init__(self, art_cache) -> None:
         super().__init__(QQuickImageProvider.ImageType.Image)
@@ -22,6 +28,33 @@ class ArtImageProvider(QQuickImageProvider):
         self._pixmap_cache: dict[str, QPixmap] = {}
         self._cache_order: list[str] = []
         self._max_cache = 200
+        self._pending_fetches: set[str] = set()
+        self._fetch_lock = threading.Lock()
+
+    def _store_pixmap(self, url: str, pixmap: QPixmap) -> None:
+        self._pixmap_cache[url] = pixmap
+        self._cache_order.append(url)
+        if len(self._cache_order) > self._max_cache:
+            old = self._cache_order.pop(0)
+            self._pixmap_cache.pop(old, None)
+
+    def _start_background_fetch(self, url: str) -> None:
+        """Download art off the render thread; skip if already in flight."""
+        with self._fetch_lock:
+            if url in self._pending_fetches:
+                return
+            self._pending_fetches.add(url)
+
+        def _bg_fetch() -> None:
+            try:
+                self._cache.get_sync(url)
+            except Exception as e:
+                log.debug("image_provider.bg_fetch_failed", url=url, error=str(e))
+            finally:
+                with self._fetch_lock:
+                    self._pending_fetches.discard(url)
+
+        threading.Thread(target=_bg_fetch, daemon=True, name="art-fetch").start()
 
     def _load_data_uri(self, url: str) -> Image.Image | None:
         """Load an image from a data URI (e.g., data:image/png;base64,...)."""
@@ -49,11 +82,11 @@ class ArtImageProvider(QQuickImageProvider):
         if not url:
             return QImage()
 
-        # Check pixmap cache
+        # 1. Pixmap cache — instant
         if url in self._pixmap_cache:
             return self._pixmap_cache[url].toImage()
 
-        # Handle data URIs
+        # 2. Data URIs — instant, no network
         img = self._load_data_uri(url)
         if img is not None:
             try:
@@ -66,33 +99,25 @@ class ArtImageProvider(QQuickImageProvider):
                     img.size[1],
                     QImage.Format.Format_RGBA8888
                 )
-
-                # Cache the pixmap
-                pixmap = QPixmap.fromImage(qimg)
-                self._pixmap_cache[url] = pixmap
-                self._cache_order.append(url)
-                if len(self._cache_order) > self._max_cache:
-                    old = self._cache_order.pop(0)
-                    self._pixmap_cache.pop(old, None)
+                self._store_pixmap(url, QPixmap.fromImage(qimg))
                 return qimg
             except Exception as e:
                 log.debug("image_provider.data_uri_convert_failed", url=url, error=str(e))
                 return QImage()
 
-        # Fetch via ArtCache (sync — ArtCache handles its own threading)
+        # 3. Disk cache — instant, no network
         try:
-            path = self._cache.get_sync(url)
+            path = self._cache._url_to_path(url)
             if path and Path(path).exists():
                 pixmap = QPixmap(str(path))
-                self._pixmap_cache[url] = pixmap
-                self._cache_order.append(url)
-                if len(self._cache_order) > self._max_cache:
-                    old = self._cache_order.pop(0)
-                    self._pixmap_cache.pop(old, None)
+                self._store_pixmap(url, pixmap)
                 return pixmap.toImage()
-        except Exception as e:
-            log.debug("image_provider.fetch_failed", url=url, error=str(e))
+        except Exception:
+            pass
 
+        # 4. Not cached anywhere — return empty immediately and let a
+        #    background thread download it (available on the next request).
+        self._start_background_fetch(url)
         return QImage()
 
 

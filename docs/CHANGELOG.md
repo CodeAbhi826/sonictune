@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] — 2026-08-06 (UI event + performance fixes)
+
+### Fixed
+- **Clicks blocked everywhere** (Bug 1): `ErrorToast` root `Item` filled the window and its `DragHandler` intercepted all mouse events even when hidden. Now `enabled`/`visible` are bound to `bar.opacity > 0` so it only captures events while the toast shows.
+- **Loading veil swallowed clicks during fade-out** (Bug 2): `LoadingOverlay` stayed `enabled: visible` while fading. Changed to `enabled: opacity > 0.5` so events pass through as soon as the fade begins.
+- **Massive lag from GPU DropShadow** (Bug 3): removed the `DropShadow { samples: 16 }` layer from `AlbumCard`, `PlaylistCard`, and `ArtistCard`; hover feedback is now the existing tonal border highlight (Material 3 elevation) instead of re-rendered shaders. Dropped the `Qt5Compat.GraphicalEffects` imports.
+- **Card hover z-order flicker** (Bug 6): removed the `z: ma.containsMouse ? 10 : 1` re-sort on hover from all three cards (scale animation remains).
+- **Render-thread block on thumbnail fetch** (Bug 4): `ArtImageProvider.requestImage` no longer performs synchronous HTTP fetches. Pixmap cache and disk cache return instantly; uncached URLs return an empty `QImage` immediately and a background thread downloads the art (with in-flight dedup) so the next request hits disk.
+- **Jerky scrolling in lists** (Bug 5): removed the manual `WheelHandler` in `TrackList` that fought with ListView's native wheel handling.
+
+### Verified
+- `QQmlComponent` compile READY + `pyside6-qmllint` exit 0 on all six touched QML files; `ruff check` clean on `imageprovider.py`; `pytest tests/` → **216 passed, 4 skipped** (visual baseline passes standalone); `main.qml` boots to `MAIN_QML_OK`.
+
+---
+
 ## [Unreleased] — 2026-08-06 (Part 2: reference-project alignment)
 
 ### Added

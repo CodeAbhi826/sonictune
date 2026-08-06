@@ -11,7 +11,9 @@ Item {
     anchors.fill: parent
     visible: opacity > 0
     opacity: 0
-    enabled: visible
+    // Disable as soon as the fade-out begins (opacity < 0.5), so the veil
+    // stops blocking clicks 250ms before it is visually gone.
+    enabled: opacity > 0.5
 
     property string message: qsTr("Loading…")
 

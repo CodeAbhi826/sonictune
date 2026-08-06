@@ -1,11 +1,11 @@
 // components/AlbumCard.qml — album card: 180x220, 16px-radius art with a
 // hover play overlay and a border-highlight lift on hover.
-// VISUAL-FIX: fixed height prevents layout shift, DropShadow replaces
-// clipped elevation, press overlay replaces heavy Material ripple shader.
+// VISUAL-FIX: fixed height prevents layout shift, tonal border highlight
+// on hover replaces GPU DropShadow (laggy with many cards), press overlay
+// replaces heavy Material ripple shader.
 
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import theme 1.0
 
 Rectangle {
@@ -22,7 +22,7 @@ Rectangle {
     height: 220
     color: "transparent"
 
-    z: ma.containsMouse ? 10 : 1
+    z: 1
 
     scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
     Behavior on scale {
@@ -39,15 +39,6 @@ Rectangle {
             Layout.preferredHeight: 180
             radius: Theme.radiusLg
             color: Theme.surfaceContainer
-
-            layer.enabled: true
-            layer.effect: DropShadow {
-                horizontalOffset: 0
-                verticalOffset: ma.containsMouse ? 4 : 2
-                radius: ma.containsMouse ? 12 : 6
-                samples: 16
-                color: Theme.shadowColor
-            }
 
             Image {
                 anchors.fill: parent
