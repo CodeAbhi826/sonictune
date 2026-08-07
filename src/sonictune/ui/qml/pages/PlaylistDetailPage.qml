@@ -70,7 +70,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             tracks: detailPage.tracks
-            currentVideoId: ""
+            currentTrackId: ""
             emptyMessage: detailPage.loading
                 ? qsTr("Loading…")
                 : (detailPage.loadFailed

@@ -22,15 +22,9 @@ Rectangle {
     height: 220
     color: "transparent"
 
-    z: 1
+z: 1
 
-    scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
-    Behavior on scale {
-        enabled: !Theme.reducedMotion
-        NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
-    }
-
-    ColumnLayout {
+ColumnLayout {
         anchors.fill: parent
         spacing: Theme.space1
 
@@ -88,19 +82,13 @@ Rectangle {
                 height: 44
                 radius: 22
                 anchors.centerIn: parent
-                color: Theme.primary
-                opacity: ma.containsMouse ? 1 : 0
-                scale: ma.containsMouse ? 1.0 : 0.8
-                Behavior on opacity {
-                    enabled: !Theme.reducedMotion
-                    NumberAnimation { duration: Theme.durFast }
-                }
-                Behavior on scale {
-                    enabled: !Theme.reducedMotion
-                    NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
-                }
+    color: Theme.primary
+    opacity: ma.containsMouse ? 1 : 0
 
-                Icon { anchors.centerIn: parent; anchors.horizontalCenterOffset: 1; name: "play"; size: 18; color: Theme.fgPrimary }
+    Icon {
+        anchors.centerIn: parent; anchors.horizontalCenterOffset: 1
+        name: "play"; size: 18; color: Theme.fgPrimary
+    }
             }
         }
 

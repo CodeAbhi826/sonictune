@@ -10,7 +10,7 @@ import "../components"
 Item {
     id: statsPage
 
-    objectName: \"stats"
+    objectName: "stats"
     property var stats: ({})
     property bool loading: true
     property bool loadError: false

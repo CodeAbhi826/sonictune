@@ -12,7 +12,7 @@ import "../router"
 Item {
     id: settingsPage
 
-    objectName: \"settings"
+    objectName: "settings"
     property var subPages: [
         { title: qsTr("Appearance"), desc: qsTr("Animations, shadows, image cache"), icon: "tune", url: "pages/SettingsAppearancePage.qml" },
         { title: qsTr("Player"), desc: qsTr("Audio quality, crossfade, speed, sleep timer"), icon: "play_circle", url: "pages/SettingsPlayerPage.qml" },

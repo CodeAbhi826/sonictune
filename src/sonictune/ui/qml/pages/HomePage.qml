@@ -11,7 +11,7 @@ import "../router"
 Item {
     id: homePage
 
-    objectName: \"home"
+    objectName: "home"
     property var sections: []
     property bool loading: true
     property bool loadError: false

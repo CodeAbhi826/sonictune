@@ -276,7 +276,7 @@ Item {
                                 title: albumItem.modelData.title || ""
                                 subtitle: albumItem.modelData.artist || albumItem.modelData.author || ""
                                 thumbnailUrl: albumItem.modelData.thumbnail_url || ""
-                                onClicked: Router.pushPage("AlbumDetailPage.qml", {
+                                onClicked: Router.pushPage("pages/AlbumDetailPage.qml", {
                                     albumId: albumItem.modelData.browse_id || "",
                                     albumTitle: albumItem.modelData.title || ""
                                 })
@@ -301,7 +301,7 @@ Item {
                                 required property var modelData
                                 name: artistItem.modelData.name || artistItem.modelData.title || ""
                                 thumbnailUrl: artistItem.modelData.thumbnail_url || ""
-                                onClicked: Router.pushPage("ArtistDetailPage.qml", {
+                                onClicked: Router.pushPage("pages/ArtistDetailPage.qml", {
                                     artistId: artistItem.modelData.browse_id || "",
                                     artistName: artistItem.modelData.name || artistItem.modelData.title || ""
                                 })
@@ -328,7 +328,7 @@ delegate: PlaylistCard {
                             subtitle: playlistItem.modelData.author || ""
                             playlistId: playlistItem.modelData.browse_id || ""
                             thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
-                            onClicked: Router.pushPage("PlaylistDetailPage.qml", {
+                            onClicked: Router.pushPage("pages/PlaylistDetailPage.qml", {
                                 playlistId: playlistItem.modelData.browse_id || "",
                                 playlistTitle: playlistItem.modelData.title || ""
                             })

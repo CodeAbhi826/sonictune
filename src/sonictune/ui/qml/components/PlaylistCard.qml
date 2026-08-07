@@ -22,12 +22,6 @@ Rectangle {
 
     z: 1
 
-    scale: ma.pressed ? 0.97 : (ma.containsMouse ? 1.02 : 1.0)
-    Behavior on scale {
-        enabled: !Theme.reducedMotion
-        NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.space1

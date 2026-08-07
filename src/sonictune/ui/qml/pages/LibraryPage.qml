@@ -12,7 +12,7 @@ import "../router"
 Item {
     id: libraryPage
 
-    objectName: \"library"
+    objectName: "library"
     property var songs: []
     property var albums: []
     property var playlists: []
