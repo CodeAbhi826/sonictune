@@ -98,3 +98,8 @@ package-lock.json
 
 # Local-only planning docs (stay on this machine)
 docs/MASTER_BLUEPRINT.md
+
+# opencode agent runtime
+.opencode/
+.roo/
+.roomodes
