@@ -28,6 +28,24 @@
 ### Verified
 - All 9 runtime bugs resolved at the source level (grep-verified); QML: 38/39 pages pass (sole failure is the pre-existing `FileDialog.selectFolder` API mismatch in `LocalLibraryPage.qml:262`, unrelated to this batch); `pytest tests/ --ignore=tests/visual` → **216 passed, 4 skipped** (visual baseline + QtQuickTest/QFontMetrics env-dependent skips).
 
+## [Unreleased] — 2026-08-07 (Material Symbols font + page objectName)
+
+### Added
+- **Material Symbols Rounded font** (`data/fonts/MaterialSymbolsRounded.ttf`, OFL-1.1): 15 MB TrueType font with thousands of icon glyphs, downloaded from `google/material-design-icons` (`variablefont/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf`). Auto-registered at startup by `app.py` via `QFontDatabase.addApplicationFont(font_dir.glob('*.ttf'))`. Bundled license text at `data/fonts/OFL-MaterialSymbols.txt`.
+- **Material-Symbols-backed `Icon.qml`**: replaces the emoji-based `Text` with the Material Symbols Rounded font + ~80-entry glyph codepoint map. Font glyphs are cached as GPU textures by Qt, so 30+ simultaneous icons render without per-frame JS paint. Same public API (`name` / `size` / `color`) — every caller continues to work; map covers all snake_case and camelCase aliases used across the codebase.
+
+### Fixed
+- **`objectName` on page roots**: `HomePage` / `LibraryPage` / `LocalLibraryPage` / `SettingsPage` / `StatsPage` now expose `objectName: "home" / "library" / "local" / "settings" / "stats"` so the NavRail Bug #4 fix (`currentItem.objectName === navItem.modelData.name`) can actually compare against a real identifier. `SearchPage` and `PlaylistDetailPage` already had it.
+
+### Changed
+- `.gitignore` now excludes `.opencode/`, `.roo/`, `.roomodes` (agent runtime context — not project source).
+
+### Tracked
+- Root-level `CHANGELOG.md`, `TESTING.md`, `TEST_RESULTS.md`, `scripts/e2b_runner.py`, `test_demo.py` were untracked and are now under version control.
+
+### Verified
+- `QQmlComponent` compile: **38/39 QML pages pass** (sole failure is the pre-existing `FileDialog.selectFolder` API mismatch in `LocalLibraryPage.qml:262`, unrelated); `pytest tests/ --ignore=tests/visual` → **216 passed, 4 skipped**.
+
 ### Verified
 - `QQmlComponent` compile READY + `pyside6-qmllint` exit 0 on all six touched QML files; `ruff check` clean on `imageprovider.py`; `pytest tests/` → **216 passed, 4 skipped** (visual baseline passes standalone); `main.qml` boots to `MAIN_QML_OK`.
 
