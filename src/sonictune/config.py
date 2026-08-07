@@ -11,7 +11,10 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -284,7 +287,7 @@ class DaemonConfig:
             + _section("lastfm", lastfm)
             + _section("sponsorblock", sponsorblock)
         )
-        path.write_text(text)
+        path.write_text(text, encoding="utf-8")
 
 
 def _toml_value(value: Any) -> str:
@@ -380,7 +383,7 @@ def load_config(explicit_path: Path | str | None = None) -> DaemonConfig:
         # Write a default config file so users can discover/edit it.
         try:
             config_path.parent.mkdir(parents=True, exist_ok=True)
-            config_path.write_text(_DEFAULT_TOML)
+            config_path.write_text(_DEFAULT_TOML, encoding="utf-8")
         except OSError:
             # Read-only home (rare). Just use built-in defaults.
             pass

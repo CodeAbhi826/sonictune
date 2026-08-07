@@ -30,6 +30,8 @@ class NullPlayer:
         self._position_ms: int = 0
         self._duration_ms: int = 0
         self._volume: int = 80
+        self._speed: float = 1.0
+        self._crossfade_seconds: int = 0
         self._play_started_at: float | None = None
         self._listeners: list[Callable[[PlayerEvent, dict[str, Any]], Any]] = []
 
@@ -102,6 +104,12 @@ class NullPlayer:
 
     async def set_volume(self, volume: int) -> None:
         self._volume = max(0, min(100, volume))
+
+    async def set_speed(self, speed: float) -> None:
+        self._speed = max(0.5, min(2.0, speed))
+
+    async def set_crossfade(self, seconds: int) -> None:
+        self._crossfade_seconds = max(0, min(12, seconds))
 
     async def _set_state(self, state: PlayerState) -> None:
         if state == self._state:

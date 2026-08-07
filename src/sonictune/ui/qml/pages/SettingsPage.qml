@@ -12,13 +12,14 @@ import "../router"
 Item {
     id: settingsPage
 
+    objectName: \"settings"
     property var subPages: [
-        { title: qsTr("Appearance"), desc: qsTr("Animations, shadows, image cache"), icon: "tune", url: "SettingsAppearancePage.qml" },
-        { title: qsTr("Player"), desc: qsTr("Audio quality, crossfade, speed, sleep timer"), icon: "play_circle", url: "SettingsPlayerPage.qml" },
-        { title: qsTr("Content"), desc: qsTr("Downloads and offline playback"), icon: "download", url: "SettingsContentPage.qml" },
-        { title: qsTr("Integrations"), desc: qsTr("YouTube Music sign-in and cookies"), icon: "login", url: "SettingsIntegrationsPage.qml" },
-        { title: qsTr("Backup"), desc: qsTr("Audio cache management"), icon: "memory", url: "SettingsBackupPage.qml" },
-        { title: qsTr("About"), desc: qsTr("Version and project info"), icon: "info", url: "SettingsAboutPage.qml" }
+        { title: qsTr("Appearance"), desc: qsTr("Animations, shadows, image cache"), icon: "tune", url: "pages/SettingsAppearancePage.qml" },
+        { title: qsTr("Player"), desc: qsTr("Audio quality, crossfade, speed, sleep timer"), icon: "play_circle", url: "pages/SettingsPlayerPage.qml" },
+        { title: qsTr("Content"), desc: qsTr("Downloads and offline playback"), icon: "download", url: "pages/SettingsContentPage.qml" },
+        { title: qsTr("Integrations"), desc: qsTr("YouTube Music sign-in and cookies"), icon: "login", url: "pages/SettingsIntegrationsPage.qml" },
+        { title: qsTr("Backup"), desc: qsTr("Audio cache management"), icon: "memory", url: "pages/SettingsBackupPage.qml" },
+        { title: qsTr("About"), desc: qsTr("Version and project info"), icon: "info", url: "pages/SettingsAboutPage.qml" }
     ]
 
     Rectangle {

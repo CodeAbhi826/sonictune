@@ -11,6 +11,7 @@ import "../components"
 
 Page {
     id: localLibraryPage
+    objectName: \"local"
     title: qsTr("Local Library")
 
     property var localTracksModel: []

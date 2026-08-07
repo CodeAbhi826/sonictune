@@ -28,16 +28,37 @@ def make_test_proxy() -> DaemonProxy:
     )
 
 
-def test_daemon_proxy_error_boundary() -> None:
-    """T-045: DaemonProxy.search returns empty list on exception."""
+import asyncio
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_daemon_proxy_error_boundary() -> None:
+    """T-045: DaemonProxy.search surfaces API errors via searchError + errorOccurred.
+
+    Previously this test checked ``result == []`` because search() was a
+    synchronous @Slot(result=list). Bug #8 in COMPLETE_FIX_BATCH.md changed
+    search() to fire-and-forget (no ``result`` decorator), so the equivalent
+    assertion is now that the searchError/errorOccurred signals fire and the
+    coroutine completes without raising.
+    """
     proxy = make_test_proxy()
     proxy._ytm = MagicMock()
     proxy._ytm.search.side_effect = Exception("API error")
-    spy = MagicMock()
-    proxy.errorOccurred.connect(spy)
-    result = proxy.search("test query")
-    assert result == []
-    spy.assert_called_once()
+    spy_err = MagicMock()
+    spy_search_err = MagicMock()
+    proxy.errorOccurred.connect(spy_err)
+    proxy.searchError.connect(spy_search_err)
+
+    proxy.search("test query")
+
+    # Let the scheduled _do() coroutine run.
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    spy_err.assert_called_once()
+    spy_search_err.assert_called_once()
+    assert "API error" in spy_search_err.call_args[0][0]
 
 
 def test_daemon_audio_quality_default() -> None:

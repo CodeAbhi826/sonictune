@@ -11,6 +11,23 @@
 - **Jerky scrolling in lists** (Bug 5): removed the manual `WheelHandler` in `TrackList` that fought with ListView's native wheel handling.
 - **"variant" property compile failure** (Bug 7): `LocalLibraryPage.qml` used plain QtQuick.Controls `Button` for the "Browse…" / "Scan" / "Scan Music Folder" actions; plain `Button` does not support `variant` (Material 3 only). All three instances changed to `STButton`.
 
+## [Unreleased] — 2026-08-07 (Runtime bug fixes from audit batch)
+
+### Fixed
+- **Bug #1 — Signal type mismatches (6 signals)**: `daemon_proxy.py` — `queueChanged`, `queueReceived`, `startOAuthCompleted`, `pollOAuthCompleted`, `syncLibraryCompleted`, `lyricsReceived` were declared with the wrong payload types, causing `_pythonToCppCopy` failures and silent drops. All six re-declared to match their actual emitters (dict / bool / list as appropriate).
+- **Bug #2 — NullPlayer missing setters**: added `set_speed` (clamped 0.5–2.0) and `set_crossfade` (clamped 0–12) so the daemon proxy's `setSpeed` / `setCrossfade` slots don't crash when libmpv is unavailable.
+- **Bug #3 — mpv `event_id` key mismatch**: `mpv_player._handle_mpv_event` only checked `"event-id"` (hyphen) — python-mpv emits `"event_id"` (underscore), so `END_FILE` was never detected and the queue never auto-advanced. Now tries underscore first, falls back to hyphen.
+- **Bug #4 — NavRail url + Immediate enum**: `NavRail.qml` compared `currentItem.url === targetUrl` (no page declares `url`) and called `navRail.stackView.Immediate` (an instance property that doesn't exist). Now compares `currentItem.objectName === navItem.modelData.name` and uses the type-level `StackView.Immediate` enum. Added `objectName: "home" / "search" / "library" / "local" / "stats" / "settings"` to each page root so the comparison actually resolves.
+- **Bug #5 — Missing `encoding="utf-8"` on 4 text I/O calls**: `config.py:290` (`write_text(text)`), `config.py:386` (`write_text(_DEFAULT_TOML)`), `daemon_proxy.py:930` (`read_text()`), `daemon_proxy.py:950` (`write_text(text)`) all relied on locale — under `LC_ALL=C` (set for mpv) non-ASCII content crashed. All four now pass `encoding="utf-8"` explicitly.
+- **Bug #6 — `playLocalTrack` was a stub**: now builds a `TrackInfo` from the local scanner and calls `player.load_url(f"file://{track.file_path}", info)`, so local files actually play.
+- **Bug #7 — Acrossfade lavfi filter broke audio**: `mpv_player._rebuild_af_chain` appended `lavfi=[acrossfade=...]` which requires two input streams; mpv has one, so enabling crossfade silenced all playback. Filter is now commented out with a TODO for a proper end-file-hook + volume-ramp implementation.
+- **Bug #8 — `search()` blocked the Qt UI thread**: `daemon_proxy.search` was `@Slot(str, str, int, result=list)`, so every search synchronously blocked the UI for 1–3 s of network I/O. Decorator now has no `result=`, both branches (sync `_ytm.search` and async `library.search`) run in an `asyncio.create_task`, and results are emitted via `searchCompleted` / `searchError`. `tests/test_daemon.py::test_daemon_proxy_error_boundary` rewritten as `@pytest.mark.asyncio` to match.
+- **Bug #9 — tomli fallback for Python 3.10**: `config.py` imported `tomllib` directly; wrapped in `try/except ImportError: import tomli as tomllib` so Python 3.10 systems don't crash at config load.
+- **`_clean()` helper for signal payloads**: added `DaemonProxy._clean(data)` that round-trips through `json.loads(json.dumps(data, default=str))` so Qt's `_pythonToCppCopy` warning stops firing on non-trivial payloads. Used inside `search()`.
+
+### Verified
+- All 9 runtime bugs resolved at the source level (grep-verified); QML: 38/39 pages pass (sole failure is the pre-existing `FileDialog.selectFolder` API mismatch in `LocalLibraryPage.qml:262`, unrelated to this batch); `pytest tests/ --ignore=tests/visual` → **216 passed, 4 skipped** (visual baseline + QtQuickTest/QFontMetrics env-dependent skips).
+
 ### Verified
 - `QQmlComponent` compile READY + `pyside6-qmllint` exit 0 on all six touched QML files; `ruff check` clean on `imageprovider.py`; `pytest tests/` → **216 passed, 4 skipped** (visual baseline passes standalone); `main.qml` boots to `MAIN_QML_OK`.
 

@@ -35,7 +35,7 @@ class DaemonProxy(QObject):
     stateChanged = Signal(str)
     positionChanged = Signal(int, int)
     trackChanged = Signal(dict)
-    queueChanged = Signal(list)
+    queueChanged = Signal(dict)
     authChanged = Signal(bool)
     errorOccurred = Signal(str)
     error = errorOccurred
@@ -54,20 +54,20 @@ class DaemonProxy(QObject):
 
     # API response signals
     statusReceived = Signal(dict)
-    queueReceived = Signal(list)
+    queueReceived = Signal(dict)
     searchCompleted = Signal(list)
     searchError = Signal(str)
     searchSongsCompleted = Signal(list)
     librarySongsReceived = Signal(list)
     libraryAlbumsReceived = Signal(list)
     libraryPlaylistsReceived = Signal(list)
-    startOAuthCompleted = Signal(str)
-    pollOAuthCompleted = Signal(str)
+    startOAuthCompleted = Signal(dict)
+    pollOAuthCompleted = Signal(bool)
     importCookiesCompleted = Signal(bool)
     statsReceived = Signal(dict)
-    syncLibraryCompleted = Signal()
+    syncLibraryCompleted = Signal(dict)
     searchHistoryReceived = Signal(list)
-    lyricsReceived = Signal(dict)
+    lyricsReceived = Signal(list)
     lyricsError = Signal(str)
     homeReceived = Signal(list)
     homeError = Signal(str)
@@ -439,36 +439,42 @@ class DaemonProxy(QObject):
 
     # === Library ===
 
-    @Slot(str, str, int, result=list)
-    def search(self, query: str, filter_: str = "", limit: int = 20) -> list[dict]:
-        """Search YT Music with an error boundary.
+    @Slot(str, str, int)
+    def search(self, query: str, filter_: str = "", limit: int = 20) -> None:
+        """Search YT Music asynchronously (fire-and-forget).
 
-        Returns the normalized result list synchronously (empty on failure —
-        never raises). Also emits ``searchCompleted`` so the async UI path
-        keeps working. When the raw ytmusicapi client is unavailable, falls
-        back to the async library wrapper.
+        Emits ``searchCompleted`` on success, ``searchError`` on failure.
+        Removed the previous `result=list` decorator — that blocked the Qt UI
+        thread for 1-3 seconds while ytmusicapi did network I/O. Both the
+        sync (ytm client) and async (library wrapper) branches now run in a
+        task so the UI stays responsive.
         """
-        try:
-            if self._ytm is not None:
-                results = self._ytm.search(query, filter=filter_ or None, limit=limit or 20)
-                normalized = [self._normalize_search_item(r) for r in results]
-                self.searchCompleted.emit(normalized)
-                return normalized
-        except Exception as e:
-            log.warning("proxy.search_error", error=str(e))
-            self.errorOccurred.emit(f"Search failed: {e!s}")
-            self.searchError.emit(str(e))
-            return []
-
-        async def _do():
+        async def _do() -> None:
             try:
-                results = await self._library.search(query, filter_=filter_ or None, limit=limit or 20)
-                self.searchCompleted.emit([self._normalize_search_item(r) for r in results])
+                if self._ytm is not None:
+                    results = await asyncio.to_thread(
+                        self._ytm.search, query, filter_ or None, limit or 20
+                    )
+                    normalized = [self._normalize_search_item(r) for r in results]
+                    self.searchCompleted.emit(self._clean(normalized))
+                    return
+            except Exception as e:
+                log.warning("proxy.search_error", error=str(e))
+                self.searchError.emit(str(e))
+                self.errorOccurred.emit(f"Search failed: {e!s}")
+                return
+
+            try:
+                results = await self._library.search(
+                    query, filter_=filter_ or None, limit=limit or 20
+                )
+                self.searchCompleted.emit(
+                    self._clean([self._normalize_search_item(r) for r in results])
+                )
             except Exception as e:
                 self.searchError.emit(str(e))
                 self.errorOccurred.emit(f"Search failed: {e!s}")
         asyncio.create_task(_do())
-        return []
 
     @staticmethod
     def _get(raw: Any, key: str, default: Any = "") -> Any:
@@ -877,10 +883,31 @@ class DaemonProxy(QObject):
 
     @Slot(str, result=bool)
     def playLocalTrack(self, track_id: str) -> bool:
-        """Play a local track by ID."""
-        # TODO: Implement local track playback
-        self.errorOccurred.emit("Local track playback not yet implemented")
-        return False
+        """Play a local track by ID — builds TrackInfo and calls player.load_url(file://…)."""
+        if not self._local_scanner:
+            self.errorOccurred.emit("Local scanner not available")
+            return False
+
+        async def _do() -> None:
+            try:
+                track = await self._local_scanner.get_track(track_id)
+                if track is None:
+                    self.errorOccurred.emit(f"Local track not found: {track_id}")
+                    return
+                info = TrackInfo(
+                    video_id=track.id,
+                    title=track.title,
+                    artist=track.artist,
+                    album=track.album,
+                    duration_ms=track.duration_ms,
+                    thumbnail_url="",
+                )
+                await self._player.load_url(f"file://{track.file_path}", info)
+            except Exception as e:
+                log.warning("proxy.play_local_failed", error=str(e))
+                self.errorOccurred.emit(f"Local playback failed: {e}")
+        asyncio.create_task(_do())
+        return True
 
     @Slot(str, bool, result=bool)
     def addLocalTrackToQueue(self, track_id: str, play_next: bool) -> bool:
@@ -900,7 +927,7 @@ class DaemonProxy(QObject):
         if not path.exists():
             return
         try:
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
         except OSError:
             return
         value = "true" if self._config.ui.report_history else "false"
@@ -920,7 +947,7 @@ class DaemonProxy(QObject):
                 text = text[:insert_at] + f"\n{line}" + text[insert_at:]
             else:
                 text = text.rstrip() + f"\n[ui]\n{line}\n"
-        path.write_text(text)
+        path.write_text(text, encoding="utf-8")
 
     # === Internal ===
 
@@ -1007,6 +1034,19 @@ class DaemonProxy(QObject):
         except Exception as e:
             log.exception("proxy.play_failed", video_id=track.video_id)
             self.errorOccurred.emit(str(e))
+
+
+    @staticmethod
+    def _clean(data: Any) -> Any:
+        """Ensure data is JSON-serializable for Qt signal emission.
+
+        Qt sometimes warns ``TypeError: _pythonToCppCopy`` when emitting
+        non-trivial Python objects (objects with __dict__, sets, custom
+        dataclasses). Round-tripping through ``json.loads(json.dumps(...,
+        default=str))`` produces a plain dict/list of primitives that Qt
+        accepts without complaint.
+        """
+        return json.loads(json.dumps(data, default=str))
 
 
 __all__ = ["DaemonProxy"]

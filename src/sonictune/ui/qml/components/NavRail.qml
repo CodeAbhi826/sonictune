@@ -108,11 +108,13 @@ Rectangle {
                         onClicked: {
                             if (navRail.stackView) {
                                 var targetUrl = navItem.modelData.url
-                                if (navRail.stackView.currentItem && navRail.stackView.currentItem.url === targetUrl) {
-                                    // Already on this page, pop to root
-                                    navRail.stackView.pop(null, navRail.stackView.Immediate)
+                                if (navRail.stackView.currentItem
+                                        && navRail.stackView.currentItem.objectName === navItem.modelData.name) {
+                                    // Already on this page, pop to root.
+                                    // StackView.Immediate is a type-level enum,
+                                    // not an instance property on stackView.
+                                    navRail.stackView.pop(null, StackView.Immediate)
                                 } else {
-                                    // Navigate to the page
                                     navRail.stackView.replace(targetUrl)
                                 }
                             } else {

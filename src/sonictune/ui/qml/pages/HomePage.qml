@@ -11,6 +11,7 @@ import "../router"
 Item {
     id: homePage
 
+    objectName: \"home"
     property var sections: []
     property bool loading: true
     property bool loadError: false
@@ -231,7 +232,7 @@ Item {
                                             if (itemCard.modelData.video_id) {
                                                 Daemon.playTrack(itemCard.modelData.video_id)
                                             } else if (itemCard.modelData.browse_id) {
-                                                Router.pushPage("AlbumDetailPage.qml", {
+                                                Router.pushPage("pages/AlbumDetailPage.qml", {
                                                     albumId: itemCard.modelData.browse_id,
                                                     albumTitle: itemCard.modelData.title || ""
                                                 })

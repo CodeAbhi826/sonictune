@@ -124,8 +124,14 @@ class MpvPlayer:
         filters: list[str] = []
         if self._config.normalization:
             filters.append("lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]")
-        if self._crossfade_seconds > 0:
-            filters.append(f"lavfi=[acrossfade=d={self._crossfade_seconds}:c1=tri:c2=tri]")
+        # BUGFIX: lavfi acrossfade requires two input streams; mpv has
+        # one audio stream, so applying this filter breaks playback entirely.
+        # Leave it disabled until a proper gapless crossfade (end-file hook
+        # + volume ramp) is implemented.
+        # if self._crossfade_seconds > 0:
+        #     filters.append(
+        #         f"lavfi=[acrossfade=d={self._crossfade_seconds}:c1=tri:c2=tri]"
+        #     )
         self._mpv.af = ",".join(filters)
 
     async def shutdown(self) -> None:
@@ -162,7 +168,7 @@ class MpvPlayer:
 
     async def _handle_mpv_event(self, event: Any) -> None:
         """Handle raw mpv events (end-file, error, etc.)."""
-        event_id = event.get("event-id") if isinstance(event, dict) else None
+        event_id = event.get("event_id", event.get("event-id")) if isinstance(event, dict) else None
         if event_id == mpv.MpvEventID.END_FILE:
             reason = event.get("reason", "unknown")
             log.info("player.end_file", reason=str(reason))

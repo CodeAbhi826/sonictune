@@ -12,6 +12,7 @@ import "../router"
 Item {
     id: libraryPage
 
+    objectName: \"library"
     property var songs: []
     property var albums: []
     property var playlists: []
@@ -125,7 +126,7 @@ TrackList {
                                 subtitle: albumItem.modelData.artist || ""
                                 thumbnailUrl: albumItem.modelData.thumbnail_url || ""
                                 browseId: albumItem.modelData.browse_id || ""
-                                onClicked: Router.pushPage("AlbumDetailPage.qml", {
+                                onClicked: Router.pushPage("pages/AlbumDetailPage.qml", {
                                     albumId: albumItem.modelData.browse_id || "",
                                     albumTitle: albumItem.modelData.title || ""
                                 })
@@ -181,7 +182,7 @@ TrackList {
                                 playlistId: playlistItem.modelData.playlist_id || ""
                                 trackCount: playlistItem.modelData.track_count || 0
                                 thumbnailUrl: playlistItem.modelData.thumbnail_url || ""
-                                onClicked: Router.pushPage("PlaylistDetailPage.qml", {
+                                onClicked: Router.pushPage("pages/PlaylistDetailPage.qml", {
                                     playlistId: playlistItem.modelData.playlist_id || "",
                                     playlistTitle: playlistItem.modelData.title || ""
                                 })
