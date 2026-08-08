@@ -121,6 +121,7 @@ ListView {
 
                     Image {
                         anchors.fill: parent
+                        cache: false
                         source: row.trackThumbnail
                             ? "image://art/" + encodeURIComponent(row.trackThumbnail)
                             : ""
@@ -188,6 +189,7 @@ ListView {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 hoverEnabled: true
+                onWheel: (wheel) => { wheel.accepted = false }
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: function(mouse) {
                     if (mouse.button === Qt.LeftButton) {

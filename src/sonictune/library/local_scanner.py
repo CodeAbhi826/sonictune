@@ -69,7 +69,9 @@ class LocalScanner:
     async def scan_directory(self, root_path: str | Path) -> list[dict[str, Any]]:
         """Scan a directory for audio files and extract metadata."""
         root = Path(root_path)
-        if not root.exists() or not root.is_dir():
+        root_exists = await asyncio.to_thread(root.exists)
+        root_is_dir = await asyncio.to_thread(root.is_dir)
+        if not root_exists or not root_is_dir:
             log.warning("local_scan_invalid_path", path=str(root_path))
             return []
 

@@ -33,6 +33,7 @@ Rectangle {
             color: Theme.surfaceContainer
 
             Image {
+                cache: false   // force re-request after background fetch completes
                 anchors.fill: parent
                 source: root.thumbnailUrl ? "image://art/" + encodeURIComponent(root.thumbnailUrl) : ""
                 fillMode: Image.PreserveAspectCrop
@@ -98,6 +99,7 @@ Rectangle {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
+        onWheel: (wheel) => { wheel.accepted = false }
         acceptedButtons: Qt.LeftButton
         onClicked: root.clicked(root.playlistId)
     }

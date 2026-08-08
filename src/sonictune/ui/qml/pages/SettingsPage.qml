@@ -49,7 +49,7 @@ Item {
 
             ColumnLayout {
                 id: sectionsColumn
-                width: settingsPage.width - Theme.space6 * 2
+                Layout.fillWidth: true
                 spacing: Theme.space3
 
                 Repeater {
@@ -102,6 +102,7 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
+                            onWheel: (wheel) => { wheel.accepted = false }
                             onClicked: Router.pushPage(row.modelData.url)
                         }
                     }

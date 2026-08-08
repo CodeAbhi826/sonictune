@@ -93,6 +93,7 @@ Rectangle {
 
                 Image {
                     anchors.fill: parent
+                    cache: false
                     source: nowPlayingBar.artSource()
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
@@ -146,6 +147,8 @@ Rectangle {
                     from: 0
                     to: Math.max(1, durationMs)
                     value: Math.min(positionMs, durationMs)
+                    enabled: durationMs > 0
+                    opacity: durationMs > 0 ? 1.0 : 0.3
                     onMoved: Daemon.seek(value)
                 }
 
@@ -197,7 +200,7 @@ Rectangle {
 
                 Icon {
                     anchors.centerIn: parent
-                    name: isPlaying ? "pause" : "play"
+                    name: (isPlaying && status.state === "playing") ? "pause" : "play"
                     size: 24
                     color: Theme.fgPrimary
                 }

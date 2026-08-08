@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any
 
 import structlog
@@ -126,7 +127,7 @@ class DaemonProxy(QObject):
         self._sponsorblock = sponsorblock
         self._color_extractor = color_extractor
         self._connected = True  # always true — we're in the same process
-        self._url_cache: dict[str, str] = {}
+        self._url_cache: dict[str, tuple[str, float]] = {}  # (url, fetched_at_epoch)
         self._prefetch_task: asyncio.Task | None = None
         self._prefetch_scheduled_for: str | None = None
         self._ytm: Any = getattr(library, "_ytm", None)
@@ -983,7 +984,7 @@ class DaemonProxy(QObject):
                     url = await self._library.get_stream_url(
                         next_track.video_id, self._config.audio.itag
                     )
-                    self._url_cache[next_track.video_id] = url
+                    self._url_cache[next_track.video_id] = (url, time.time())
                     log.debug("player.prefetched", video_id=next_track.video_id)
                 except Exception:
                     log.debug("player.prefetch_failed", video_id=next_track.video_id)
@@ -1008,8 +1009,13 @@ class DaemonProxy(QObject):
     async def _play_track(self, track: Any) -> None:
         """Resolve stream URL and load into player."""
         try:
+            now = time.time()
+            stale = [k for k, (_, ts) in self._url_cache.items() if now - ts > 300]
+            for k in stale:
+                self._url_cache.pop(k, None)
+
             if track.video_id in self._url_cache:
-                url = self._url_cache.pop(track.video_id)
+                url = self._url_cache.pop(track.video_id)[0]
             else:
                 url = await self._resolve_stream_for_track(track.video_id)
             if not url:

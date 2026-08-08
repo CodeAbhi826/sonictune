@@ -9,6 +9,7 @@ import "../router"
 
 Item {
     id: page
+    objectName: "settingsBackup"
 
     property string pageTitle: qsTr("Backup")
     property real audioCacheBytes: 0
@@ -64,7 +65,7 @@ Item {
 
             ColumnLayout {
                 id: column
-                width: page.width
+                width: parent.width
                 spacing: Theme.space3
                 anchors.leftMargin: Theme.space4
                 anchors.rightMargin: Theme.space4

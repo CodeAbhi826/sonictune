@@ -9,6 +9,7 @@ import "../router"
 
 Item {
     id: page
+    objectName: "settingsAbout"
 
     property string pageTitle: qsTr("About")
 
@@ -52,7 +53,7 @@ Item {
 
             ColumnLayout {
                 id: column
-                width: page.width
+                width: parent.width
                 spacing: Theme.space3
                 anchors.leftMargin: Theme.space4
                 anchors.rightMargin: Theme.space4

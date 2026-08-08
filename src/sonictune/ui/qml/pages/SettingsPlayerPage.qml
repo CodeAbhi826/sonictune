@@ -10,6 +10,7 @@ import "../router"
 
 Item {
     id: page
+    objectName: "settingsPlayer"
 
     property string pageTitle: qsTr("Player")
     property string audioQuality: "standard"
@@ -70,7 +71,7 @@ Item {
 
             ColumnLayout {
                 id: column
-                width: page.width
+                width: parent.width
                 spacing: Theme.space3
                 anchors.leftMargin: Theme.space4
                 anchors.rightMargin: Theme.space4

@@ -46,6 +46,41 @@
 ### Verified
 - `QQmlComponent` compile: **38/39 QML pages pass** (sole failure is the pre-existing `FileDialog.selectFolder` API mismatch in `LocalLibraryPage.qml:262`, unrelated); `pytest tests/ --ignore=tests/visual` → **216 passed, 4 skipped**.
 
+## [Unreleased] — 2026-08-07 (Screenshot audit fixes)
+
+### P0 — Visible UI fixes
+- **Bug A — NavRail active highlight never updated**: added `navRail.currentIndex = index` in the `MouseArea.onClicked` handler so clicking Home/Search/Library/Local/Stats/Settings actually moves the purple highlight (was stuck on Home/index 0 forever).
+- **Bug B — SearchPage objectName mismatch**: `objectName: "searchPage"` → `"search"` so the NavRail "already on this page" comparison (`currentItem.objectName === modelData.name`) resolves.
+- **Bug C — Play button showed pause while idle**: `NowPlayingBar` play/pause icon now requires `isPlaying && status.state === "playing"` before showing the pause glyph.
+- **Bug D — Seek bar active with no track**: `STSlider` now has `enabled: durationMs > 0` + `opacity: durationMs > 0 ? 1.0 : 0.3` so it's disabled/dimmed when nothing is loaded.
+
+### P0 — Scroll propagation
+- **Bug E — MouseAreas ate wheel events**: added `onWheel: (wheel) => { wheel.accepted = false }` to the card `MouseArea` in `AlbumCard`, `PlaylistCard`, `ArtistCard`, the `TrackList` row, and the `SettingsPage` hub rows — vertical scroll now reaches the parent `Flickable`/`ScrollView`.
+- **Bug F — Horizontal `ScrollView` swallowed vertical scroll**: `HomePage` section rows switched from `ScrollView` to a `Flickable` with `flickableDirection: Flickable.HorizontalFlick` + `contentWidth: innerRow.implicitWidth` so vertical wheel events pass through.
+- **Bug G — TrackList WheelHandler**: verified already removed (native `ListView` scrolling).
+
+### P0 — Album art
+- **Bug H — `cache: false` on art images**: added `cache: false` to the `Image` elements in `AlbumCard`, `PlaylistCard`, `ArtistCard`, `TrackList`, and `NowPlayingBar` so QML re-requests after the background `ImageProvider` fetch completes instead of caching the empty first frame.
+
+### P1 — Settings alignment
+- **Bug I — invalid margins**: settings sub-pages — `width: page.width` → `width: parent.width`.
+- **Bug J — SettingsPage hub**: `width: settingsPage.width - Theme.space6 * 2` → `Layout.fillWidth: true` for `sectionsColumn`.
+- **Bug K — sub-page objectName**: added `objectName` (`settingsAppearance`, `settingsPlayer`, `settingsContent`, `settingsIntegrations`, `settingsBackup`, `settingsAbout`) to all six sub-page roots.
+
+### P1 — Runtime
+- **Bug L — unbounded `_url_cache`**: `DaemonProxy._url_cache` now stores `(url, fetched_at_epoch)` tuples and evicts entries older than 5 minutes before each playback lookup (bounded memory).
+- **Bug M — `threading.Lock` in async player**: `mpv_player._lock` → `asyncio.Lock()` (removed now-unused `threading` import).
+- **Bug N — websockets dep**: the `social/` module is already dead (no source, only `__pycache__`, zero imports) — no dependency to add.
+- **Bug O — blocking I/O in local scanner**: `root.exists()` / `root.is_dir()` wrapped in `asyncio.to_thread()`.
+
+### P2 — Minor
+- **Bug P — `app.py` `main()` return type**: returns `0` on clean shutdown instead of `run_forever()`'s `None`.
+- **Bug Q — `Theme.py` purpose note**: already documented in the module docstring (test-suite mirror of `Theme.qml`).
+- **Bug R — DaemonProxy god object**: intentionally skipped (out of scope for this bug batch; noted as a future refactor).
+
+### Verified
+- `QQmlComponent` compile: **38/39 QML pages pass** (sole pre-existing `FileDialog.selectFolder` failure in `LocalLibraryPage.qml:262`, unrelated); `pytest tests/ --ignore=tests/visual` → **216 passed, 4 skipped**.
+
 ### Verified
 - `QQmlComponent` compile READY + `pyside6-qmllint` exit 0 on all six touched QML files; `ruff check` clean on `imageprovider.py`; `pytest tests/` → **216 passed, 4 skipped** (visual baseline passes standalone); `main.qml` boots to `MAIN_QML_OK`.
 

@@ -10,7 +10,7 @@ import "../router"
 
 Item {
     id: searchPage
-    objectName: "searchPage"
+    objectName: "search"
 
     property var results: []
     property var recentSearches: []

@@ -613,7 +613,7 @@ def main(argv: list[str] | None = None) -> int:
             # socket released before the process exits.
             if app._shutdown_task is not None and not app._shutdown_task.done():
                 app.loop.run_until_complete(app._shutdown_task)
-        return result
+        return 0
     except KeyboardInterrupt:
         return 130
     except Exception:

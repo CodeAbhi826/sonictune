@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import threading
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -43,7 +42,7 @@ class MpvPlayer:
         self._crossfade_seconds: int = 0
         self._play_started_at: float | None = None
         self._listeners: list[Callable[[PlayerEvent, dict[str, Any]], Any]] = []
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
         self._position_poller: asyncio.Task | None = None
 
     # --- Lifecycle ---------------------------------------------------------

@@ -106,6 +106,7 @@ Rectangle {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
+                            navRail.currentIndex = index
                             if (navRail.stackView) {
                                 var targetUrl = navItem.modelData.url
                                 if (navRail.stackView.currentItem

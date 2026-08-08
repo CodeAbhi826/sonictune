@@ -11,6 +11,7 @@ import "../router"
 
 Item {
     id: page
+    objectName: "settingsIntegrations"
 
     property string pageTitle: qsTr("Integrations")
     property bool authenticated: false
@@ -82,7 +83,7 @@ Item {
 
             ColumnLayout {
                 id: column
-                width: page.width
+                width: parent.width
                 spacing: Theme.space3
                 anchors.leftMargin: Theme.space4
                 anchors.rightMargin: Theme.space4

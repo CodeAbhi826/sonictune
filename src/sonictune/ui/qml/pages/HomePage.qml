@@ -207,14 +207,18 @@ Item {
                         }
 
                         // A "row" section shows horizontally scrolling cards.
-                        ScrollView {
+                        Flickable {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 236
                             clip: true
                             visible: !sectionDelegate.isHeader && sectionDelegate.items.length > 0
-                            ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+                            contentWidth: innerRow.implicitWidth
+                            contentHeight: height
+                            flickableDirection: Flickable.HorizontalFlick
+                            boundsBehavior: Flickable.StopAtBounds
 
                             RowLayout {
+                                id: innerRow
                                 height: 236
                                 spacing: Theme.space4
 
