@@ -200,7 +200,7 @@ Rectangle {
 
                 Icon {
                     anchors.centerIn: parent
-                    name: (isPlaying && status.state === "playing") ? "pause" : "play"
+                    name: (isPlaying && status.state === "playing" && currentTrack.title) ? "pause" : "play"
                     size: 24
                     color: Theme.fgPrimary
                 }

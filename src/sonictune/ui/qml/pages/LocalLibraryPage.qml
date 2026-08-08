@@ -259,8 +259,8 @@ STButton {
     FileDialog {
         id: fileDialog
         title: qsTr("Select Music Folder")
-        folder: shortcuts.home
-        selectFolder: true
+        currentFolder: Qt.homePath
+        fileMode: FileDialog.Directory
         onAccepted: scanPathField.text = fileDialog.fileUrl.toString().replace("file://", "")
     }
 

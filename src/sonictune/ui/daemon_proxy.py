@@ -201,7 +201,7 @@ class DaemonProxy(QObject):
                 video_id,
                 position_ms,
                 completion_pct,
-                started_at=self._player._iso_started_at(),
+                started_at=self._player.iso_started_at,
             )
 
         next_track = await self._queue.advance()
@@ -454,7 +454,7 @@ class DaemonProxy(QObject):
             try:
                 if self._ytm is not None:
                     results = await asyncio.to_thread(
-                        self._ytm.search, query, filter_ or None, limit or 20
+                        self._ytm.search, query, filter=filter_ or None, limit=limit or 20
                     )
                     normalized = [self._normalize_search_item(r) for r in results]
                     self.searchCompleted.emit(self._clean(normalized))

@@ -92,7 +92,7 @@ Rectangle {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        onWheel: (wheel) => { wheel.accepted = false }
+        onWheel: (wheel) => { wheel.accepted = true }
         acceptedButtons: Qt.LeftButton
         onClicked: root.clicked(root.channelId)
     }

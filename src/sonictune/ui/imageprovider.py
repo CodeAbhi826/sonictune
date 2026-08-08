@@ -90,33 +90,40 @@ class ArtImageProvider(QQuickImageProvider):
         img = self._load_data_uri(url)
         if img is not None:
             try:
-                # Convert to QImage
                 if img.mode != "RGBA":
                     img = img.convert("RGBA")
-                qimg = QImage(
-                    img.tobytes(),
-                    img.size[0],
-                    img.size[1],
-                    QImage.Format.Format_RGBA8888
-                )
+                qimg = QImage(img.tobytes(), img.size[0], img.size[1], QImage.Format.Format_RGBA8888)
                 self._store_pixmap(url, QPixmap.fromImage(qimg))
                 return qimg
-            except Exception as e:
-                log.debug("image_provider.data_uri_convert_failed", url=url, error=str(e))
+            except Exception:
                 return QImage()
 
-        # 3. Disk cache — instant, no network
-        try:
-            path = self._cache._url_to_path(url)
-            if path and Path(path).exists():
-                pixmap = QPixmap(str(path))
+        # 3. HTTP/HTTPS URLs — must download, can't load as local files
+        if url.startswith("http://") or url.startswith("https://"):
+            # Check disk cache first
+            try:
+                path = self._cache._url_to_path(url)
+                if path and Path(path).exists():
+                    pixmap = QPixmap(str(path))
+                    self._store_pixmap(url, pixmap)
+                    return pixmap.toImage()
+            except Exception:
+                pass
+
+            # Return empty immediately, background thread will fetch
+            self._start_background_fetch(url)
+            return QImage()
+
+        # 4. Local file path fallback
+        if Path(url).exists():
+            try:
+                pixmap = QPixmap(url)
                 self._store_pixmap(url, pixmap)
                 return pixmap.toImage()
-        except Exception:
-            pass
+            except Exception:
+                pass
 
-        # 4. Not cached anywhere — return empty immediately and let a
-        #    background thread download it (available on the next request).
+        # 5. Not cached anywhere — return empty and let background fetch
         self._start_background_fetch(url)
         return QImage()
 

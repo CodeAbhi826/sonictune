@@ -260,7 +260,8 @@ class MpvPlayer:
         """Epoch seconds when the current track started playing, if any."""
         return self._play_started_at
 
-    def _iso_started_at(self) -> str | None:
+    @property
+    def iso_started_at(self) -> str | None:
         """ISO-8601 UTC string for the current play start time, if any."""
         if self._play_started_at is None:
             return None

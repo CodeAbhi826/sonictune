@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] — 2026-08-08 (11-bug final runtime fix)
+
+### Fixed
+- **NavRail `StackView` compile error** (Bug 1): added `import QtQuick.Controls` so the `StackView.Immediate` enum in `NavRail.qml` resolves instead of failing at load.
+- **`FileDialog.selectFolder` Qt 6 API** (Bug 2): `LocalLibraryPage.qml` used the removed Qt 5 `selectFolder`/`folder`/`shortcuts` API. Replaced with Qt 6 `fileMode: FileDialog.Directory` + `currentFolder: Qt.homePath` — this was the last pre-existing QML compile failure, now **11/11 pages compile**.
+- **Router resolved page URLs from its own directory** (Bug 3): `Router.pushPage("pages/X.qml")` resolved to `router/pages/X.qml` (missing). Now `Qt.resolvedUrl("../" + pageUrl)` resolves relative to the QML root. Also switched the invalid instance access `stackView.Immediate` to the type-level `StackView.Immediate` (with the required import).
+- **Search passed `limit` as `scope`** (Bug 4): `daemon_proxy.search` called `self._ytm.search(query, filter_, limit)` positionally, mapping limit onto `scope` and yielding "Invalid scope provided". Now uses `filter=`/`limit=` keyword args.
+- **Album art never loaded for HTTP URLs** (Bug 5): `ArtImageProvider.requestImage` treated every URL as a local path. Now branches explicitly: HTTP/HTTPS → disk-cache lookup + background fetch (returns empty immediately), local path → direct load, else background fetch.
+- **Tray icon missing / black taskbar square / Quit hung** (Bug 6): `tray.py` looked for the icon at the wrong path (`data/org.sonicTune.svg` is at `data/icons/hicolor/scalable/apps/`), and Quit only called `app.quit()` without stopping the qasync loop. Icon resolution now tries the theme then both SVG paths; `_quit_app()` stops the event loop before quitting. App window icon was already set from the SVG (verified).
+- **NavRail highlight didn't sync on Router/back navigation** (Bug 7): added a `Connections` block in `main.qml` that maps `contentStack.currentItem.objectName` → `navRail.currentIndex` on `currentItemChanged`.
+- **Play button showed pause when idle** (Bug 8): `NowPlayingBar` play/pause icon now also requires `currentTrack.title` (a track actually loaded) before showing the pause glyph.
+- **Home page jitter** (Bug 9): `AlbumCard`/`PlaylistCard`/`ArtistCard` changed `onWheel` to `wheel.accepted = true` so wheel events stop at the card and the parent `Flickable` handles them natively (competing vertical+horizontal scroll handlers were causing jitter). `TrackList` and `SettingsPage` deliberately stay at `false`.
+- **Settings sub-pages missing `objectName`** (Bug 10): already present from the prior screenshot batch — verified all six (`settingsAppearance`, `settingsPlayer`, `settingsContent`, `settingsIntegrations`, `settingsBackup`, `settingsAbout`).
+- **Private-method access** (Bug 11): `daemon_proxy` called `self._player._iso_started_at()`. Both `MpvPlayer` and `NullPlayer` now expose it as a public `@property iso_started_at`; call site updated to `self._player.iso_started_at`.
+
+### Verified
+- `qmllint` clean on NavRail, LocalLibraryPage, Router, main.qml, NowPlayingBar, and all three cards.
+- `py_compile` clean on daemon_proxy, imageprovider, tray, mpv_player, null_player.
+- `QQmlComponent` compile: **11/11 QML entrypoints pass** (was 38/39; the pre-existing `selectFolder` failure is now fixed).
+- `pytest tests/ --ignore=tests/visual` → **215 passed, 4 skipped, 1 pre-existing flaky failure** (`test_mpv_seek_cpu_spikes`, a timing assertion that also fails on clean HEAD, unrelated to this batch).
+
 ## [Unreleased] — 2026-08-06 (UI event + performance fixes)
 
 ### Fixed

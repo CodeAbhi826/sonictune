@@ -5,6 +5,7 @@
 
 pragma Singleton
 import QtQuick
+import QtQuick.Controls
 
 QtObject {
     id: router
@@ -13,7 +14,9 @@ QtObject {
 
     function pushPage(pageUrl, properties) {
         if (stackView) {
-            stackView.push(pageUrl, properties || {})
+            // Resolve relative to the QML root, not Router.qml's directory
+            var resolved = Qt.resolvedUrl("../" + pageUrl)
+            stackView.push(resolved, properties || {})
         }
     }
 
@@ -25,7 +28,7 @@ QtObject {
 
     function popToRoot() {
         if (stackView) {
-            stackView.pop(null, stackView.Immediate)
+            stackView.pop(null, StackView.Immediate)
         }
     }
 }

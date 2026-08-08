@@ -97,6 +97,19 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: contentStack
+        function onCurrentItemChanged() {
+            var nameMap = {
+                "home": 0, "search": 1, "library": 2,
+                "local": 3, "stats": 4, "settings": 5
+            }
+            var objName = contentStack.currentItem ? contentStack.currentItem.objectName : ""
+            var idx = nameMap[objName] !== undefined ? nameMap[objName] : -1
+            if (idx >= 0) navRail.currentIndex = idx
+        }
+    }
+
     // --- Persistent Bottom Now Playing Bar ---------------------------------
     NowPlayingBar {
         id: nowPlayingBar
