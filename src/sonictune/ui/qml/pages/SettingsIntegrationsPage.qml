@@ -83,7 +83,7 @@ Item {
 
             ColumnLayout {
                 id: column
-                width: parent.width
+                width: page.width
                 spacing: Theme.space3
                 anchors.leftMargin: Theme.space4
                 anchors.rightMargin: Theme.space4

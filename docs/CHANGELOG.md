@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased] — 2026-08-08 (Regression corrections — scroll, settings layout, tray)
+
+### Fixed
+- **Scrolling died over cards again** (Bug 1): the previous batch flipped `AlbumCard`/`PlaylistCard`/`ArtistCard` `onWheel` to `wheel.accepted = true`, which CONSUMES the wheel event so the parent `Flickable` never receives it. Reverted to `accepted = false` on all three cards so wheel events bubble up and vertical scroll works over the cards again. (`TrackList` and `SettingsPage` were already `false`.)
+- **Settings hub width collapsed** (Bug 2): `SettingsPage.qml` had `Layout.fillWidth: true` on a `ColumnLayout` that is a direct child of a `ScrollView` — `Layout.*` only works inside a Layout container, so the width collapsed. Added `id: settingsScroll` to the `ScrollView` and bound the column to `width: settingsScroll.availableWidth`.
+- **Settings sub-pages width collapsed** (Bug 3): all six sub-pages (`SettingsAppearancePage`, `SettingsPlayerPage`, `SettingsContentPage`, `SettingsIntegrationsPage`, `SettingsBackupPage`, `SettingsAboutPage`) used `width: parent.width`, which is circular/zero inside a `ScrollView`. Reverted to `width: page.width`. Padding changes kept.
+- **Tray icon still missing** (Bug 4): `tray.py` built the icon with `QIcon(str(svg_path))`, which returns null for SVGs without the QtSvg image-format plugin. `_tray_icon()` now uses `QSvgRenderer` → `QPixmap` → `QIcon` (the same approach `app.py` already uses for the window icon, verified).
+
+### Verified
+- `qmllint` clean on AlbumCard, PlaylistCard, ArtistCard, SettingsPage, SettingsAppearancePage.
+- `py_compile` clean on tray.py.
+- `QQmlComponent` compile: **20/20 QML entrypoints pass**.
+- `pytest tests/ --ignore=tests/visual` → **216 passed, 4 skipped**.
+
 ## [Unreleased] — 2026-08-08 (11-bug final runtime fix)
 
 ### Fixed

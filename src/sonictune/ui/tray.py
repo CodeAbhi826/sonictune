@@ -12,18 +12,29 @@ log = structlog.get_logger()
 
 
 def _tray_icon() -> QIcon:
-    """Resolve the tray icon: theme icon first, then SVG file fallback."""
+    """Resolve the tray icon: theme icon first, then SVG rendered to pixmap."""
     icon = QIcon.fromTheme("org.sonicTune")
     if not icon.isNull():
         return icon
-    # Try multiple paths
+
+    # SVG requires QSvgRenderer → QPixmap → QIcon
+    from PySide6.QtSvg import QSvgRenderer
+    from PySide6.QtGui import QPixmap, QPainter
+
     paths = [
         Path(__file__).resolve().parents[2] / "data" / "icons" / "hicolor" / "scalable" / "apps" / "org.sonicTune.svg",
         Path(__file__).resolve().parents[2] / "data" / "org.sonicTune.svg",
     ]
     for icon_path in paths:
         if icon_path.exists():
-            return QIcon(str(icon_path))
+            renderer = QSvgRenderer(str(icon_path))
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(0)  # transparent
+            painter = QPainter(pixmap)
+            renderer.render(painter)
+            painter.end()
+            return QIcon(pixmap)
+
     return QIcon()
 
 

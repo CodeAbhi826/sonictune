@@ -42,6 +42,7 @@ Item {
         }
 
         ScrollView {
+            id: settingsScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: availableWidth
@@ -49,7 +50,7 @@ Item {
 
             ColumnLayout {
                 id: sectionsColumn
-                Layout.fillWidth: true
+                width: settingsScroll.availableWidth
                 spacing: Theme.space3
 
                 Repeater {
